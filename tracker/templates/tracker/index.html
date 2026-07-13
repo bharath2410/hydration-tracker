@@ -63,7 +63,10 @@
     <div class="header">
         <div class="streak-badge" id="streakContainer">🔥 <span>{{ profile.streak }}</span> Day Streak</div>
         <div class="actions-right">
-            <a href="{% url 'logout' %}" class="logout-link">Logout</a>
+            <form action="{% url 'logout' %}" method="POST" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="logout-link" style="background: none; border: none; font-size: 0.85rem; opacity: 0.6; color: var(--text-color); cursor: pointer; padding: 0;">Logout</button>
+            </form>
             <button class="icon-btn" id="openSettings">⚙️</button>
         </div>
     </div>
