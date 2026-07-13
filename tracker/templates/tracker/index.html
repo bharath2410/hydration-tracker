@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hydrate</title>
+    <title>Hydrate Daily</title>
+    <link rel="manifest" href="/static/manifest.json">
+    <meta name="theme-color" content="#0f172a" id="themeMetaColor">
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
     <style>
         :root {
             --bg-color: #0f172a;
@@ -11,6 +16,18 @@
             --water-color: #38bdf8;
             --text-color: #f8fafc;
             --modal-bg: #1e293b;
+            --pill-inactive: #1e293b;
+            --card-border: rgba(255, 255, 255, 0.1);
+        }
+
+        body.light-theme {
+            --bg-color: #f8fafc;
+            --circle-bg: #e2e8f0;
+            --water-color: #0284c7;
+            --text-color: #0f172a;
+            --modal-bg: #ffffff;
+            --pill-inactive: #e2e8f0;
+            --card-border: rgba(0, 0, 0, 0.1);
         }
 
         * {
@@ -32,61 +49,71 @@
             height: 100vh;
             width: 100vw;
             overflow: hidden;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .header {
             position: absolute;
-            top: 5vh;
+            top: 4vh;
             width: 85vw;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            z-index: 50;
         }
 
-        h1 {
-            font-size: 1.3rem;
-            letter-spacing: 2px;
-            text-transform: uppercase;
-            opacity: 0.8;
+        .streak-badge {
+            font-size: 0.9rem;
+            font-weight: bold;
+            background: rgba(249, 115, 22, 0.15);
+            color: #f97316;
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid rgba(249, 115, 22, 0.3);
         }
 
-        .settings-btn {
+        .actions-right {
+            display: flex;
+            gap: 15px;
+        }
+
+        .icon-btn {
             background: none;
             border: none;
             color: var(--text-color);
-            font-size: 1.5rem;
+            font-size: 1.4rem;
             cursor: pointer;
-            opacity: 0.7;
+            opacity: 0.8;
+            transition: transform 0.2s;
         }
+        .icon-btn:active { transform: scale(0.9); }
 
         .container {
             text-align: center;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: space-around;
-            height: 65vh;
+            justify-content: space-between;
+            height: 70vh;
             width: 100%;
-            margin-top: 5vh;
+            margin-top: 6vh;
         }
 
+        /* Interactive Circle Display */
         .circle-wrapper {
             position: relative;
-            width: 70vw;
-            max-width: 300px;
+            width: 68vw;
+            max-width: 280px;
             aspect-ratio: 1;
             cursor: pointer;
             border-radius: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 35px rgba(0,0,0,0.15);
             transition: transform 0.1s ease;
         }
-
-        .circle-wrapper:active {
-            transform: scale(0.96);
-        }
+        .circle-wrapper:active { transform: scale(0.96); }
 
         svg {
             position: absolute;
@@ -97,14 +124,11 @@
 
         circle {
             fill: none;
-            stroke-width: 12;
+            stroke-width: 10;
             stroke-linecap: round;
         }
 
-        .circle-bg {
-            stroke: var(--circle-bg);
-        }
-
+        .circle-bg { stroke: var(--circle-bg); }
         .circle-progress {
             stroke: var(--water-color);
             stroke-dasharray: 565.4;
@@ -112,41 +136,79 @@
             transition: stroke-dashoffset 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .counter-label {
+        .counter-label { text-align: center; z-index: 10; }
+        .intake-amount { font-size: 3.2rem; font-weight: 800; letter-spacing: -1px; }
+        .goal-label { font-size: 0.95rem; opacity: 0.6; margin-top: 2px; }
+
+        /* Volume Presets Panel */
+        .volume-selector {
+            display: flex;
+            gap: 8px;
+            width: 85vw;
+            max-width: 400px;
+            margin: 10px 0;
+        }
+
+        .vol-pill {
+            background: var(--pill-inactive);
+            border: 1px solid var(--card-border);
+            color: var(--text-color);
+            padding: 10px 0;
+            border-radius: 16px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1;
             text-align: center;
-            z-index: 10;
         }
 
-        .intake-amount {
-            font-size: 3rem;
+        .vol-pill.active {
+            background: var(--water-color);
+            color: #ffffff;
+            border-color: var(--water-color);
+            transform: scale(1.04);
+            box-shadow: 0 4px 12px rgba(56, 189, 248, 0.2);
+        }
+
+        /* Bottom Controls */
+        .bottom-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 85vw;
+            max-width: 400px;
+        }
+
+        .share-btn {
+            background: #22c55e;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 14px;
+            font-size: 0.95rem;
             font-weight: bold;
-        }
-
-        .goal-label {
-            font-size: 1rem;
-            opacity: 0.6;
-            margin-top: 4px;
+            cursor: pointer;
+            display: none; /* Only visible when goal is reached */
+            box-shadow: 0 4px 12px rgba(34, 197, 94, 0.2);
         }
 
         .reset-btn {
             background: none;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 1px solid var(--card-border);
             color: var(--text-color);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9rem;
+            padding: 10px;
+            border-radius: 14px;
+            font-size: 0.85rem;
             cursor: pointer;
-            opacity: 0.6;
+            opacity: 0.5;
         }
 
-        /* Settings Modal Overlay */
+        /* Settings Drawer Panel */
         .modal-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.5);
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.4);
             display: flex;
             justify-content: center;
             align-items: flex-end;
@@ -167,306 +229,288 @@
             max-width: 500px;
             border-radius: 24px 24px 0 0;
             padding: 24px;
-            box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 -8px 25px rgba(0,0,0,0.2);
             transform: translateY(100%);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .modal-overlay.active .modal {
-            transform: translateY(0);
-        }
+        .modal-overlay.active .modal { transform: translateY(0); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-header h2 { font-size: 1.3rem; }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 0.9rem;
-            opacity: 0.7;
-            margin-bottom: 6px;
-        }
-
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 0.85rem; opacity: 0.7; margin-bottom: 6px; font-weight: 500; }
         .form-group input, .form-group select {
             width: 100%;
             padding: 12px;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            background: #0f172a;
-            color: white;
+            border-radius: 10px;
+            border: 1px solid var(--card-border);
+            background: var(--bg-color);
+            color: var(--text-color);
             font-size: 1rem;
+            outline: none;
         }
 
         .save-btn {
             width: 100%;
             padding: 14px;
             background: var(--water-color);
-            color: #0f172a;
+            color: white;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             font-weight: bold;
             font-size: 1rem;
-            margin-top: 10px;
+            margin-top: 8px;
             cursor: pointer;
-        }
-
-        .volume-selector {
-            display: flex;
-            gap: 8px;
-            margin-top: 15px;
-            justify-content: center;
-            width: 85vw;
-            max-width: 400px;
-        }
-
-        .vol-pill {
-            background: var(--circle-bg);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            color: var(--text-color);
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            flex: 1;
-            text-align: center;
-        }
-
-        .vol-pill.active {
-            background: var(--water-color);
-            color: #0f172a;
-            font-weight: bold;
-            border-color: var(--water-color);
-            transform: scale(1.05);
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
 
-<div class="header">
-    <h1>Hydrate</h1>
-    <button class="settings-btn" id="openSettings">⚙️</button>
-</div>
-
-<div class="container">
-    <div class="circle-wrapper" id="tapZone">
-        <svg viewBox="0 0 200 200">
-            <circle class="circle-bg" cx="100" cy="100" r="90"></circle>
-            <circle class="circle-progress" id="progress" cx="100" cy="100" r="90"></circle>
-        </svg>
-        <div class="counter-label">
-            <div class="intake-amount"><span id="current">0</span>L</div>
-            <div class="goal-label">Goal: <span id="goalText">3.00</span>L</div>
+    <div class="header">
+        <div class="streak-badge">🔥 <span id="streakDays">0</span> Day Streak</div>
+        <div class="actions-right">
+            <button class="icon-btn" id="themeToggle" title="Toggle Theme">🌓</button>
+            <button class="icon-btn" id="openSettings" title="Settings">⚙️</button>
         </div>
     </div>
 
-    <div class="volume-selector">
-        <div class="vol-pill" data-vol="0.10">Sip (100ml)</div>
-        <div class="vol-pill active" data-vol="0.25">Glass (250ml)</div>
-        <div class="vol-pill" data-vol="0.50">Bottle (500ml)</div>
-        <div class="vol-pill" data-vol="0.75">Flask (750ml)</div>
+    <div class="container">
+        <div class="circle-wrapper" id="tapZone">
+            <svg viewBox="0 0 200 200">
+                <circle class="circle-bg" cx="100" cy="100" r="90"></circle>
+                <circle class="circle-progress" id="progress" cx="100" cy="100" r="90"></circle>
+            </svg>
+            <div class="counter-label">
+                <div class="intake-amount"><span id="current">0</span>L</div>
+                <div class="goal-label">Goal: <span id="goalText">3.00</span>L</div>
+            </div>
+        </div>
+
+        <div class="volume-selector">
+            <div class="vol-pill" data-vol="0.10">Sip (100ml)</div>
+            <div class="vol-pill active" data-vol="0.25">Glass (250ml)</div>
+            <div class="vol-pill" data-vol="0.50">Bottle (500ml)</div>
+            <div class="vol-pill" data-vol="0.75">Flask (750ml)</div>
+        </div>
+
+        <div class="bottom-actions">
+            <button class="share-btn" id="shareBtn">Share Success 🚀</button>
+            <button class="reset-btn" id="resetBtn">Reset Intake</button>
+        </div>
     </div>
 
-    <button class="reset-btn" id="resetBtn">Reset Day</button>
-</div>
-
-<!-- Configuration Panel -->
-<div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
-        <div class="modal-header">
-            <h2>Hydration Settings</h2>
-            <button class="settings-btn" id="closeSettings">✕</button>
+    <div class="modal-overlay" id="modalOverlay">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>Tailored Profile Setup</h2>
+                <button class="icon-btn" id="closeSettings">✕</button>
+            </div>
+            <div class="form-group">
+                <label>Body Weight (kg)</label>
+                <input type="number" id="weightInput" value="70" min="30" max="250">
+            </div>
+            <div class="form-group">
+                <label>Physical Energy Expended</label>
+                <select id="activityInput">
+                    <option value="0">Sedentary (Desk Job / Studying)</option>
+                    <option value="0.5">Active (Exercise 30-60 mins)</option>
+                    <option value="1.0">High Intensity / Athlete</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Local Ambient Climate</label>
+                <select id="climateInput">
+                    <option value="0">Temperate / Air Conditioned</option>
+                    <option value="0.5">Hot / High Humidity</option>
+                </select>
+            </div>
+            <button class="save-btn" id="saveSettings">Update Daily Target</button>
         </div>
-        <div class="form-group">
-            <label>Weight (kg)</label>
-            <input type="number" id="weightInput" value="70" min="30" max="200">
-        </div>
-        <div class="form-group">
-            <label>Daily Activity Level</label>
-            <select id="activityInput">
-                <option value="0">Sedentary (Desk job / Gaming)</option>
-                <option value="0.5">Moderate (30-60 mins active)</option>
-                <option value="1.0">High / Athlete (Intense exercise)</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Climate / Weather</label>
-            <select id="climateInput">
-                <option value="0">Cool / Air Conditioned</option>
-                <option value="0.5">Hot / Humid Environment</option>
-            </select>
-        </div>
-        <button class="save-btn" id="saveSettings">Calculate & Save</button>
     </div>
-</div>
 
-<script>
-    const CIRCUMFERENCE = 2 * Math.PI * 90;
+    <script>
+        const CIRCUMFERENCE = 2 * Math.PI * 90;
 
-    // 🌟 State variables retrieved from local storage (with dynamic volume tracking)
-    let activeIncrement = parseFloat(localStorage.getItem('activeIncrement')) || 0.25;
-    let currentIntake = parseFloat(localStorage.getItem('currentIntake')) || 0;
-    let dailyGoal = parseFloat(localStorage.getItem('dailyGoal')) || 3.0;
-    let lastTapped = parseInt(localStorage.getItem('lastTapped')) || Date.now();
+        // Reactive Application State
+        let activeIncrement = parseFloat(localStorage.getItem('activeIncrement')) || 0.25;
+        let currentIntake = parseFloat(localStorage.getItem('currentIntake')) || 0;
+        let dailyGoal = parseFloat(localStorage.getItem('dailyGoal')) || 2.5;
+        let lastTapped = parseInt(localStorage.getItem('lastTapped')) || Date.now();
+        let streak = parseInt(localStorage.getItem('hydrationStreak')) || 0;
 
-    // UI Target Elements
-    const progressCircle = document.getElementById('progress');
-    const currentText = document.getElementById('current');
-    const goalText = document.getElementById('goalText');
-    const tapZone = document.getElementById('tapZone');
-    const resetBtn = document.getElementById('resetBtn');
-    const volumePills = document.querySelectorAll('.vol-pill'); // 🌟 Added target for your volume options
+        // UI Mapping Nodes
+        const progressCircle = document.getElementById('progress');
+        const currentText = document.getElementById('current');
+        const goalText = document.getElementById('goalText');
+        const streakDays = document.getElementById('streakDays');
+        const tapZone = document.getElementById('tapZone');
+        const volumePills = document.querySelectorAll('.vol-pill');
+        const shareBtn = document.getElementById('shareBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const themeToggle = document.getElementById('themeToggle');
 
-    // Modal Control Elements
-    const modalOverlay = document.getElementById('modalOverlay');
-    const openSettings = document.getElementById('openSettings');
-    const closeSettings = document.getElementById('closeSettings');
-    const saveSettings = document.getElementById('saveSettings');
+        // Modal Selectors
+        const modalOverlay = document.getElementById('modalOverlay');
+        const openSettings = document.getElementById('openSettings');
+        const closeSettings = document.getElementById('closeSettings');
+        const saveSettings = document.getElementById('saveSettings');
 
-    function updateUI() {
-        currentText.textContent = currentIntake.toFixed(2);
-        goalText.textContent = dailyGoal.toFixed(2);
+        function updateUI() {
+            currentText.textContent = currentIntake.toFixed(2);
+            goalText.textContent = dailyGoal.toFixed(2);
+            streakDays.textContent = streak;
 
-        const progressRatio = Math.min(currentIntake / dailyGoal, 1);
-        const offset = CIRCUMFERENCE - (progressRatio * CIRCUMFERENCE);
-        progressCircle.style.strokeDashoffset = offset;
+            const progressRatio = Math.min(currentIntake / dailyGoal, 1);
+            const offset = CIRCUMFERENCE - (progressRatio * CIRCUMFERENCE);
+            progressCircle.style.strokeDashoffset = offset;
 
-        localStorage.setItem('currentIntake', currentIntake);
-        localStorage.setItem('dailyGoal', dailyGoal);
-        localStorage.setItem('lastTapped', lastTapped);
-    }
+            // Toggle Share Button view based on completion status
+            shareBtn.style.display = (currentIntake >= dailyGoal) ? 'block' : 'none';
 
-    // 🌟 Initialize & handle Volume Selection Presets
-    volumePills.forEach(pill => {
-        // Highlight correct active selection from last session
-        if (parseFloat(pill.dataset.vol) === activeIncrement) {
-            const activePill = document.querySelector('.vol-pill.active');
-            if (activePill) activePill.classList.remove('active');
-            pill.classList.add('active');
+            // Cache State Parameters
+            localStorage.setItem('currentIntake', currentIntake);
+            localStorage.setItem('dailyGoal', dailyGoal);
+            localStorage.setItem('lastTapped', lastTapped);
         }
 
-        // Handle clicking alternative container sizes
-        pill.addEventListener('click', (e) => {
-            e.stopPropagation(); // Prevents clicking a pill from triggering a main circle tap!
-            const activePill = document.querySelector('.vol-pill.active');
-            if (activePill) activePill.classList.remove('active');
-            pill.classList.add('active');
+        // Initialize Theme Setup
+        if (localStorage.getItem('theme') === 'light') {
+            document.body.classList.add('light-theme');
+            document.getElementById('themeMetaColor').setAttribute('content', '#f8fafc');
+        }
 
-            activeIncrement = parseFloat(pill.dataset.vol);
-            localStorage.setItem('activeIncrement', activeIncrement);
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('light-theme');
+            const isLight = document.body.classList.contains('light-theme');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            document.getElementById('themeMetaColor').setAttribute('content', isLight ? '#f8fafc' : '#0f172a');
         });
-    });
 
-    // Calculate dynamic goal based on profile factors
-    function calculateGoal() {
-        const weight = parseFloat(document.getElementById('weightInput').value) || 70;
-        const activityAdd = parseFloat(document.getElementById('activityInput').value);
-        const climateAdd = parseFloat(document.getElementById('climateInput').value);
+        // Setup Metric Pills Selection
+        volumePills.forEach(pill => {
+            if (parseFloat(pill.dataset.vol) === activeIncrement) {
+                document.querySelector('.vol-pill.active').classList.remove('active');
+                pill.classList.add('active');
+            }
+            pill.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.querySelector('.vol-pill.active').classList.remove('active');
+                pill.classList.add('active');
+                activeIncrement = parseFloat(pill.dataset.vol);
+                localStorage.setItem('activeIncrement', activeIncrement);
+            });
+        });
 
-        // Baseline: 35ml per kg of body weight
-        let calculated = (weight * 0.035) + activityAdd + climateAdd;
+        // Dynamic Calculations Based on Lifestyle Demands
+        function calculateGoal() {
+            const weight = parseFloat(document.getElementById('weightInput').value) || 70;
+            const activity = parseFloat(document.getElementById('activityInput').value);
+            const climate = parseFloat(document.getElementById('climateInput').value);
 
-        // Set reasonable safety caps (min 1.5L, max 6L)
-        dailyGoal = Math.max(1.5, Math.min(6.0, calculated));
+            let calculated = (weight * 0.035) + activity + climate;
+            dailyGoal = Math.max(1.5, Math.min(6.0, calculated)); // Safe boundaries
+            updateUI();
+        }
+
+        // Processing Goal Completion Streaks
+        function evaluateStreakCounter() {
+            let today = new Date().toDateString();
+            let lastStreakDate = localStorage.getItem('lastStreakDate');
+
+            if (lastStreakDate !== today) {
+                streak++;
+                localStorage.setItem('hydrationStreak', streak);
+                localStorage.setItem('lastStreakDate', today);
+                updateUI();
+            }
+        }
+
+        // Primary Tap Handling Action
+        tapZone.addEventListener('click', () => {
+            if (currentIntake < dailyGoal) {
+                currentIntake += activeIncrement;
+                lastTapped = Date.now();
+                updateUI();
+
+                if ("Notification" in window && Notification.permission === "default") {
+                    Notification.requestPermission();
+                }
+
+                if (currentIntake >= dailyGoal) {
+                    triggerCelebration();
+                    evaluateStreakCounter();
+                }
+            }
+        });
+
+        // Native Native Sharing Bridge (Brings in more users!)
+        shareBtn.addEventListener('click', () => {
+            if (navigator.share) {
+                navigator.share({
+                    title: 'Hydration Complete!',
+                    text: `💧 Crushed my ${dailyGoal.toFixed(2)}L water intake target today! Current Streak: ${streak} Days. Can you match it?`,
+                    url: window.location.href
+                }).catch(console.error);
+            } else {
+                alert(`🎯 Current Streak: ${streak} Days! Copy the page link to challenge your team!`);
+            }
+        });
+
+        // Celebration Engine Execution
+        function triggerCelebration() {
+            confetti({ particleCount: 90, spread: 60, origin: { x: 0, y: 0.85 } });
+            confetti({ particleCount: 90, spread: 60, origin: { x: 1, y: 0.85 } });
+
+            let duration = 1.5 * 1000;
+            let end = Date.now() + duration;
+            (function frame() {
+                confetti({ particleCount: 2, angle: 60, spread: 40, origin: { x: 0 } });
+                confetti({ particleCount: 2, angle: 120, spread: 40, origin: { x: 1 } });
+                if (Date.now() < end) requestAnimationFrame(frame);
+            }());
+        }
+
+        resetBtn.addEventListener('click', () => {
+            if (confirm("Reset tracking data for today?")) {
+                currentIntake = 0;
+                lastTapped = Date.now();
+                updateUI();
+            }
+        });
+
+        // Settings Open/Close Functions
+        openSettings.addEventListener('click', () => {
+            document.getElementById('weightInput').value = localStorage.getItem('userWeight') || 70;
+            document.getElementById('activityInput').value = localStorage.getItem('userActivity') || 0;
+            document.getElementById('climateInput').value = localStorage.getItem('userClimate') || 0;
+            modalOverlay.classList.add('active');
+        });
+
+        const hideDrawer = () => modalOverlay.classList.remove('active');
+        closeSettings.addEventListener('click', hideDrawer);
+        saveSettings.addEventListener('click', () => {
+            localStorage.setItem('userWeight', document.getElementById('weightInput').value);
+            localStorage.setItem('userActivity', document.getElementById('activityInput').value);
+            localStorage.setItem('userClimate', document.getElementById('climateInput').value);
+            calculateGoal();
+            hideDrawer();
+        });
+
+        // 2-Hour Alert Intervals
+        setInterval(() => {
+            const boundary = 2 * 60 * 60 * 1000;
+            if (Date.now() - lastTapped > boundary && currentIntake < dailyGoal) {
+                if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification("Stay Hydrated! 💧", {
+                        body: "Keep up the rhythm during your deep work window."
+                    });
+                }
+            }
+        }, 15 * 60 * 1000);
+
+        // Render Configuration State
         updateUI();
-    }
-
-    // Tap Interactions
-    tapZone.addEventListener('click', () => {
-        if (currentIntake < dailyGoal) {
-            currentIntake += activeIncrement; // 🌟 Modified: Adds the selected custom volume instead of 0.25
-            lastTapped = Date.now();
-            updateUI();
-
-            // Request notification permissions if not yet granted
-            if ("Notification" in window && Notification.permission === "default") {
-                Notification.requestPermission();
-            }
-
-            // 🎉 CELEBRATION TRIGGER 🎉
-            if (currentIntake >= dailyGoal) {
-                triggerCelebration();
-            }
-        }
-    });
-
-    // Confetti Animation Function
-    function triggerCelebration() {
-        confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: {x: 0, y: 0.8}
-        });
-
-        confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: {x: 1, y: 0.8}
-        });
-
-        let duration = 2 * 1000;
-        let end = Date.now() + duration;
-
-        (function frame() {
-            confetti({particleCount: 3, angle: 60, spread: 55, origin: {x: 0}});
-            confetti({particleCount: 3, angle: 120, spread: 55, origin: {x: 1}});
-
-            if (Date.now() < end) {
-                requestAnimationFrame(frame);
-            }
-        }());
-    }
-
-    resetBtn.addEventListener('click', () => {
-        if (confirm("Reset your metrics for today?")) {
-            currentIntake = 0;
-            lastTapped = Date.now();
-            updateUI();
-        }
-    });
-
-    // Modal UX Actions
-    openSettings.addEventListener('click', () => {
-        document.getElementById('weightInput').value = localStorage.getItem('userWeight') || 70;
-        document.getElementById('activityInput').value = localStorage.getItem('userActivity') || 0;
-        document.getElementById('climateInput').value = localStorage.getItem('userClimate') || 0;
-        modalOverlay.classList.add('active');
-    });
-
-    const hideModal = () => modalOverlay.classList.remove('active');
-    closeSettings.addEventListener('click', hideModal);
-
-    saveSettings.addEventListener('click', () => {
-        localStorage.setItem('userWeight', document.getElementById('weightInput').value);
-        localStorage.setItem('userActivity', document.getElementById('activityInput').value);
-        localStorage.setItem('userClimate', document.getElementById('climateInput').value);
-
-        calculateGoal();
-        hideModal();
-    });
-
-    // 2-Hour Inactivity Warning
-    setInterval(() => {
-        const twoHours = 2 * 60 * 60 * 1000;
-        if (Date.now() - lastTapped > twoHours && currentIntake < dailyGoal) {
-            if ("Notification" in window && Notification.permission === "granted") {
-                new Notification("Time to Hydrate! 💧", {
-                    body: "You haven't logged water in a couple of hours. Hit your target!",
-                });
-            }
-        }
-    }, 15 * 60 * 1000);
-
-    // Load correct calculations on first run
-    updateUI();
-</script>
+    </script>
 </body>
 </html>

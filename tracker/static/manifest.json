@@ -1,0 +1,11 @@
+{
+  "name": "Hydrate Daily Tracker",
+  "short_name": "Hydrate",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "orientation": "portrait",
+  "scope": "/",
+  "description": "Minimalist, tailored water tracking to enhance performance during intense work windows."
+}
