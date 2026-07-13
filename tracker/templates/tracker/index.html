@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hydrate</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --circle-bg: #1e293b;
+            --water-color: #38bdf8;
+            --text-color: #f8fafc;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-around;
+            height: 80vh;
+            width: 100%;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            opacity: 0.8;
+        }
+
+        /* Interactive Circle Container */
+        .circle-wrapper {
+            position: relative;
+            width: 70vw;
+            max-width: 300px;
+            aspect-ratio: 1;
+            cursor: pointer;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: transform 0.1s ease;
+        }
+
+        .circle-wrapper:active {
+            transform: scale(0.96);
+        }
+
+        svg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        circle {
+            fill: none;
+            stroke-width: 12;
+            stroke-linecap: round;
+        }
+
+        .circle-bg {
+            stroke: var(--circle-bg);
+        }
+
+        .circle-progress {
+            stroke: var(--water-color);
+            stroke-dasharray: 565.4; /* 2 * PI * r (r=90) */
+            stroke-dashoffset: 565.4;
+            transition: stroke-dashoffset 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .counter-label {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+        }
+
+        .intake-amount {
+            font-size: 3rem;
+            font-weight: bold;
+        }
+
+        .goal-label {
+            font-size: 1rem;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
+        .reset-btn {
+            background: none;
+            border: 1px solid rgba(255,255,255,0.2);
+            color: var(--text-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .reset-btn:hover {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Stay Hydrated</h1>
+
+        <div class="circle-wrapper" id="tapZone">
+            <svg viewBox="0 0 200 200">
+                <circle class="circle-bg" cx="100" cy="100" r="90"></circle>
+                <circle class="circle-progress" id="progress" cx="100" cy="100" r="90"></circle>
+            </svg>
+            <div class="counter-label">
+                <div class="intake-amount"><span id="current">0</span>L</div>
+                <div class="goal-label">Goal: <span id="goal">3.0</span>L</div>
+            </div>
+        </div>
+
+        <button class="reset-btn" id="resetBtn">Reset Day</button>
+    </div>
+
+    <script>
+        const GOAL = 3.0;
+        const INCREMENT = 0.25; // 250ml per glass
+        const CIRCUMFERENCE = 2 * Math.PI * 90;
+
+        let currentIntake = parseFloat(localStorage.getItem('currentIntake')) || 0;
+        let lastTapped = parseInt(localStorage.getItem('lastTapped')) || Date.now();
+
+        const progressCircle = document.getElementById('progress');
+        const currentText = document.getElementById('current');
+        const tapZone = document.getElementById('tapZone');
+        const resetBtn = document.getElementById('resetBtn');
+
+        function updateUI() {
+            currentText.textContent = currentIntake.toFixed(2);
+
+            // Calculate progress fill
+            const progressRatio = Math.min(currentIntake / GOAL, 1);
+            const offset = CIRCUMFERENCE - (progressRatio * CIRCUMFERENCE);
+            progressCircle.style.strokeDashoffset = offset;
+
+            // Save state
+            localStorage.setItem('currentIntake', currentIntake);
+            localStorage.setItem('lastTapped', lastTapped);
+        }
+
+        // Tap Logic
+        tapZone.addEventListener('click', () => {
+            if (currentIntake < GOAL) {
+                currentIntake += INCREMENT;
+                lastTapped = Date.now();
+                updateUI();
+                requestNotificationPermission();
+            }
+        });
+
+        // Reset Logic
+        resetBtn.addEventListener('click', () => {
+            if(confirm("Reset your tracking for today?")) {
+                currentIntake = 0;
+                lastTapped = Date.now();
+                updateUI();
+            }
+        });
+
+        // Local Notifications Logic (2-Hour Reminder Check)
+        function requestNotificationPermission() {
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+        }
+
+        function checkHydrationReminder() {
+            const twoHoursInMs = 2 * 60 * 60 * 1000;
+            if (Date.now() - lastTapped > twoHoursInMs && currentIntake < GOAL) {
+                if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification("Time to Hydrate! 💧", {
+                        body: "You haven't logged water in over 2 hours. Keep pushing toward your goal!",
+                        icon: "https://images.unsplash.com/photo-1548839130-3bf6027b7aae?w=128"
+                    });
+                }
+            }
+        }
+
+        // Check for stagnation every 15 minutes
+        setInterval(checkHydrationReminder, 15 * 60 * 1000);
+
+        // Initial Layout Render
+        updateUI();
+    </script>
+</body>
+</html>
