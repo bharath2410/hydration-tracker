@@ -10,7 +10,7 @@
   "description": "Minimalist, hardware-verified water tracking utility.",
   "icons": [
     {
-      "src": "/static/icon.png",
+      "src": "/static/manifest.json",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
