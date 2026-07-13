@@ -330,195 +330,213 @@
     </div>
 
     <script>
-        const CIRCUMFERENCE = 2 * Math.PI * 90;
+    const CIRCUMFERENCE = 2 * Math.PI * 90;
 
-        // Reactive Application State
-        let activeIncrement = parseFloat(localStorage.getItem('activeIncrement')) || 0.25;
-        let currentIntake = parseFloat(localStorage.getItem('currentIntake')) || 0;
-        let dailyGoal = parseFloat(localStorage.getItem('dailyGoal')) || 2.5;
-        let lastTapped = parseInt(localStorage.getItem('lastTapped')) || Date.now();
-        let streak = parseInt(localStorage.getItem('hydrationStreak')) || 0;
+    // Reactive Application State
+    let activeIncrement = parseFloat(localStorage.getItem('activeIncrement')) || 0.25;
+    let currentIntake = parseFloat(localStorage.getItem('currentIntake')) || 0;
+    let dailyGoal = parseFloat(localStorage.getItem('dailyGoal')) || 2.5;
+    let lastTapped = parseInt(localStorage.getItem('lastTapped')) || Date.now();
+    let streak = parseInt(localStorage.getItem('hydrationStreak')) || 0;
 
-        // UI Mapping Nodes
-        const progressCircle = document.getElementById('progress');
-        const currentText = document.getElementById('current');
-        const goalText = document.getElementById('goalText');
-        const streakDays = document.getElementById('streakDays');
-        const tapZone = document.getElementById('tapZone');
-        const volumePills = document.querySelectorAll('.vol-pill');
-        const shareBtn = document.getElementById('shareBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const themeToggle = document.getElementById('themeToggle');
+    // UI Mapping Nodes
+    const progressCircle = document.getElementById('progress');
+    const currentText = document.getElementById('current');
+    const goalText = document.getElementById('goalText');
+    const streakDays = document.getElementById('streakDays');
+    const tapZone = document.getElementById('tapZone');
+    const volumePills = document.querySelectorAll('.vol-pill');
+    const shareBtn = document.getElementById('shareBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const themeToggle = document.getElementById('themeToggle');
 
-        // Modal Selectors
-        const modalOverlay = document.getElementById('modalOverlay');
-        const openSettings = document.getElementById('openSettings');
-        const closeSettings = document.getElementById('closeSettings');
-        const saveSettings = document.getElementById('saveSettings');
+    // Modal Selectors
+    const modalOverlay = document.getElementById('modalOverlay');
+    const openSettings = document.getElementById('openSettings');
+    const closeSettings = document.getElementById('closeSettings');
+    const saveSettings = document.getElementById('saveSettings');
 
-        function updateUI() {
-            currentText.textContent = currentIntake.toFixed(2);
-            goalText.textContent = dailyGoal.toFixed(2);
-            streakDays.textContent = streak;
+    // 🌟 NEW: Automatic Daily Reset Engine 🌟
+    function checkDailyReset() {
+        const today = new Date().toDateString();
+        const lastOpenDate = localStorage.getItem('lastOpenDate');
 
-            const progressRatio = Math.min(currentIntake / dailyGoal, 1);
-            const offset = CIRCUMFERENCE - (progressRatio * CIRCUMFERENCE);
-            progressCircle.style.strokeDashoffset = offset;
+        // If the user is opening the app on a brand new calendar day
+        if (lastOpenDate && lastOpenDate !== today) {
 
-            // Toggle Share Button view based on completion status
-            shareBtn.style.display = (currentIntake >= dailyGoal) ? 'block' : 'none';
-
-            // Cache State Parameters
-            localStorage.setItem('currentIntake', currentIntake);
-            localStorage.setItem('dailyGoal', dailyGoal);
-            localStorage.setItem('lastTapped', lastTapped);
-        }
-
-        // Initialize Theme Setup
-        if (localStorage.getItem('theme') === 'light') {
-            document.body.classList.add('light-theme');
-            document.getElementById('themeMetaColor').setAttribute('content', '#f8fafc');
-        }
-
-        themeToggle.addEventListener('click', () => {
-            document.body.classList.toggle('light-theme');
-            const isLight = document.body.classList.contains('light-theme');
-            localStorage.setItem('theme', isLight ? 'light' : 'dark');
-            document.getElementById('themeMetaColor').setAttribute('content', isLight ? '#f8fafc' : '#0f172a');
-        });
-
-        // Setup Metric Pills Selection
-        volumePills.forEach(pill => {
-            if (parseFloat(pill.dataset.vol) === activeIncrement) {
-                document.querySelector('.vol-pill.active').classList.remove('active');
-                pill.classList.add('active');
+            // 1. Check if they missed their goal yesterday to maintain/break streak
+            const lastStreakDate = localStorage.getItem('lastStreakDate');
+            if (lastStreakDate !== lastOpenDate && currentIntake < dailyGoal) {
+                // They didn't hit 100% yesterday, streak resets
+                streak = 0;
+                localStorage.setItem('hydrationStreak', 0);
             }
-            pill.addEventListener('click', (e) => {
-                e.stopPropagation();
-                document.querySelector('.vol-pill.active').classList.remove('active');
-                pill.classList.add('active');
-                activeIncrement = parseFloat(pill.dataset.vol);
-                localStorage.setItem('activeIncrement', activeIncrement);
-            });
+
+            // 2. Clear out yesterday's water metric values
+            currentIntake = 0;
+            localStorage.setItem('currentIntake', 0);
+        }
+
+        // Track today as the current active session date
+        localStorage.setItem('lastOpenDate', today);
+    }
+
+    function updateUI() {
+        currentText.textContent = currentIntake.toFixed(2);
+        goalText.textContent = dailyGoal.toFixed(2);
+        streakDays.textContent = streak;
+
+        const progressRatio = Math.min(currentIntake / dailyGoal, 1);
+        const offset = CIRCUMFERENCE - (progressRatio * CIRCUMFERENCE);
+        progressCircle.style.strokeDashoffset = offset;
+
+        shareBtn.style.display = (currentIntake >= dailyGoal) ? 'block' : 'none';
+
+        localStorage.setItem('currentIntake', currentIntake);
+        localStorage.setItem('dailyGoal', dailyGoal);
+        localStorage.setItem('lastTapped', lastTapped);
+    }
+
+    // Initialize Theme Setup
+    if (localStorage.getItem('theme') === 'light') {
+        document.body.classList.add('light-theme');
+        document.getElementById('themeMetaColor').setAttribute('content', '#f8fafc');
+    }
+
+    themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('light-theme');
+        const isLight = document.body.classList.contains('light-theme');
+        localStorage.setItem('theme', isLight ? 'light' : 'dark');
+        document.getElementById('themeMetaColor').setAttribute('content', isLight ? '#f8fafc' : '#0f172a');
+    });
+
+    // Setup Metric Pills Selection
+    volumePills.forEach(pill => {
+        if (parseFloat(pill.dataset.vol) === activeIncrement) {
+            const activePill = document.querySelector('.vol-pill.active');
+            if (activePill) activePill.classList.remove('active');
+            pill.classList.add('active');
+        }
+        pill.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const activePill = document.querySelector('.vol-pill.active');
+            if (activePill) activePill.classList.remove('active');
+            pill.classList.add('active');
+            activeIncrement = parseFloat(pill.dataset.vol);
+            localStorage.setItem('activeIncrement', activeIncrement);
         });
+    });
 
-        // Dynamic Calculations Based on Lifestyle Demands
-        function calculateGoal() {
-            const weight = parseFloat(document.getElementById('weightInput').value) || 70;
-            const activity = parseFloat(document.getElementById('activityInput').value);
-            const climate = parseFloat(document.getElementById('climateInput').value);
+    // Dynamic Calculations Based on Lifestyle Demands
+    function calculateGoal() {
+        const weight = parseFloat(document.getElementById('weightInput').value) || 70;
+        const activity = parseFloat(document.getElementById('activityInput').value);
+        const climate = parseFloat(document.getElementById('climateInput').value);
 
-            let calculated = (weight * 0.035) + activity + climate;
-            dailyGoal = Math.max(1.5, Math.min(6.0, calculated)); // Safe boundaries
+        let calculated = (weight * 0.035) + activity + climate;
+        dailyGoal = Math.max(1.5, Math.min(6.0, calculated));
+        updateUI();
+    }
+
+    // Processing Goal Completion Streaks
+    function evaluateStreakCounter() {
+        let today = new Date().toDateString();
+        let lastStreakDate = localStorage.getItem('lastStreakDate');
+
+        if (lastStreakDate !== today) {
+            streak++;
+            localStorage.setItem('hydrationStreak', streak);
+            localStorage.setItem('lastStreakDate', today);
             updateUI();
         }
-
-        // Processing Goal Completion Streaks
-        function evaluateStreakCounter() {
-            let today = new Date().toDateString();
-            let lastStreakDate = localStorage.getItem('lastStreakDate');
-
-            if (lastStreakDate !== today) {
-                streak++;
-                localStorage.setItem('hydrationStreak', streak);
-                localStorage.setItem('lastStreakDate', today);
-                updateUI();
-            }
-        }
-
-        // Primary Tap Handling Action
-        tapZone.addEventListener('click', () => {
-            if (currentIntake < dailyGoal) {
-                currentIntake += activeIncrement;
-                lastTapped = Date.now();
-                updateUI();
-
-                if ("Notification" in window && Notification.permission === "default") {
-                    Notification.requestPermission();
-                }
-
-                if (currentIntake >= dailyGoal) {
-                    triggerCelebration();
-                    evaluateStreakCounter();
-                }
-            }
-        });
-
-        // Native Native Sharing Bridge (Brings in more users!)
-        shareBtn.addEventListener('click', () => {
-            if (navigator.share) {
-                navigator.share({
-                    title: 'Hydration Complete!',
-                    text: `💧 Crushed my ${dailyGoal.toFixed(2)}L water intake target today! Current Streak: ${streak} Days. Can you match it?`,
-                    url: window.location.href
-                }).catch(console.error);
-            } else {
-                alert(`🎯 Current Streak: ${streak} Days! Copy the page link to challenge your team!`);
-            }
-        });
-
-        // Celebration Engine Execution
-        function triggerCelebration() {
-            confetti({ particleCount: 90, spread: 60, origin: { x: 0, y: 0.85 } });
-            confetti({ particleCount: 90, spread: 60, origin: { x: 1, y: 0.85 } });
-
-            let duration = 1.5 * 1000;
-            let end = Date.now() + duration;
-            (function frame() {
-                confetti({ particleCount: 2, angle: 60, spread: 40, origin: { x: 0 } });
-                confetti({ particleCount: 2, angle: 120, spread: 40, origin: { x: 1 } });
-                if (Date.now() < end) requestAnimationFrame(frame);
-            }());
-        }
-
-        resetBtn.addEventListener('click', () => {
-            if (confirm("Reset tracking data for today?")) {
-                currentIntake = 0;
-                lastTapped = Date.now();
-                updateUI();
-            }
-        });
-
-        // Settings Open/Close Functions
-        openSettings.addEventListener('click', () => {
-            document.getElementById('weightInput').value = localStorage.getItem('userWeight') || 70;
-            document.getElementById('activityInput').value = localStorage.getItem('userActivity') || 0;
-            document.getElementById('climateInput').value = localStorage.getItem('userClimate') || 0;
-            modalOverlay.classList.add('active');
-        });
-
-        const hideDrawer = () => modalOverlay.classList.remove('active');
-        closeSettings.addEventListener('click', hideDrawer);
-        saveSettings.addEventListener('click', () => {
-            localStorage.setItem('userWeight', document.getElementById('weightInput').value);
-            localStorage.setItem('userActivity', document.getElementById('activityInput').value);
-            localStorage.setItem('userClimate', document.getElementById('climateInput').value);
-            calculateGoal();
-            hideDrawer();
-        });
-
-        // 2-Hour Alert Intervals
-        setInterval(() => {
-            const boundary = 2 * 60 * 60 * 1000;
-            if (Date.now() - lastTapped > boundary && currentIntake < dailyGoal) {
-                if ("Notification" in window && Notification.permission === "granted") {
-                    new Notification("Stay Hydrated! 💧", {
-                        body: "Keep up the rhythm during your deep work window."
-                    });
-                }
-            }
-        }, 15 * 60 * 1000);
-
-        // Render Configuration State
-        updateUI();
-    // Register the Service Worker for PWA compliance
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/static/sw.js')
-                .then(reg => console.log('Service Worker Registered!', reg))
-                .catch(err => console.error('Service Worker Registration Failed', err));
-        });
     }
-    </script>
+
+    // Primary Tap Handling Action
+    tapZone.addEventListener('click', () => {
+        if (currentIntake < dailyGoal) {
+            currentIntake += activeIncrement;
+            lastTapped = Date.now();
+            updateUI();
+
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+
+            if (currentIntake >= dailyGoal) {
+                triggerCelebration();
+                evaluateStreakCounter();
+            }
+        }
+    });
+
+    // Native Sharing Bridge
+    shareBtn.addEventListener('click', () => {
+        if (navigator.share) {
+            navigator.share({
+                title: 'Hydration Complete!',
+                text: `💧 Crushed my ${dailyGoal.toFixed(2)}L water intake target today! Current Streak: ${streak} Days. Can you match it?`,
+                url: window.location.href
+            }).catch(console.error);
+        } else {
+            alert(`🎯 Current Streak: ${streak} Days! Copy the page link to challenge your team!`);
+        }
+    });
+
+    // Celebration Engine Execution
+    function triggerCelebration() {
+        confetti({ particleCount: 90, spread: 60, origin: { x: 0, y: 0.85 } });
+        confetti({ particleCount: 90, spread: 60, origin: { x: 1, y: 0.85 } });
+
+        let duration = 1.5 * 1000;
+        let end = Date.now() + duration;
+        (function frame() {
+            confetti({ particleCount: 2, angle: 60, spread: 40, origin: { x: 0 } });
+            confetti({ particleCount: 2, angle: 120, spread: 40, origin: { x: 1 } });
+            if (Date.now() < end) requestAnimationFrame(frame);
+        }());
+    }
+
+    resetBtn.addEventListener('click', () => {
+        if (confirm("Reset tracking data for today?")) {
+            currentIntake = 0;
+            lastTapped = Date.now();
+            updateUI();
+        }
+    });
+
+    // Settings Open/Close Functions
+    openSettings.addEventListener('click', () => {
+        document.getElementById('weightInput').value = localStorage.getItem('userWeight') || 70;
+        document.getElementById('activityInput').value = localStorage.getItem('userActivity') || 0;
+        document.getElementById('climateInput').value = localStorage.getItem('userClimate') || 0;
+        modalOverlay.classList.add('active');
+    });
+
+    const hideDrawer = () => modalOverlay.classList.remove('active');
+    closeSettings.addEventListener('click', hideDrawer);
+    saveSettings.addEventListener('click', () => {
+        localStorage.setItem('userWeight', document.getElementById('weightInput').value);
+        localStorage.setItem('userActivity', document.getElementById('activityInput').value);
+        localStorage.setItem('userClimate', document.getElementById('climateInput').value);
+        calculateGoal();
+        hideDrawer();
+    });
+
+    // 2-Hour Alert Intervals
+    setInterval(() => {
+        const boundary = 2 * 60 * 60 * 1000;
+        if (Date.now() - lastTapped > boundary && currentIntake < dailyGoal) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("Stay Hydrated! 💧", {
+                    body: "Keep up the rhythm during your deep work window."
+                });
+            }
+        }
+    }, 15 * 60 * 1000);
+
+    // Run evaluations and render on startup
+    checkDailyReset(); // 🌟 Runs immediately upon launch to handle overnight resets
+    updateUI();
+</script>
 </body>
 </html>
