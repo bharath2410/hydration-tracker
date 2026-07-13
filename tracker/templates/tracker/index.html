@@ -19,7 +19,7 @@
             --modal-bg: #1e293b;
             --pill-inactive: #1e293b;
             --card-border: rgba(255, 255, 255, 0.1);
-            --state-color: #f97316; /* Dynamic indicator accent */
+            --state-color: #f97316;
         }
 
         body.light-theme {
@@ -94,7 +94,7 @@
             margin-top: 4vh;
         }
 
-        /* 🌊 Animated Circle & Wave Container Layout */
+        /* 🌊 Fixed Wave Container Layout */
         .circle-wrapper {
             position: relative;
             width: 65vw;
@@ -121,23 +121,22 @@
 
         .wave {
             position: absolute;
-            bottom: 0;
+            top: 100%; /* Start completely hidden below the circle */
             left: -50%;
             width: 200%;
             height: 200%;
             background: var(--water-color);
             opacity: 0.25;
-            border-radius: 38%;
+            border-radius: 40%;
             animation: wave-move 6s linear infinite;
-            transform: translateY(100%);
-            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transition: top 0.6s cubic-bezier(0.4, 0, 0.2, 1);
             z-index: 1;
         }
 
         .wave-secondary {
             animation: wave-move 9s linear infinite;
             opacity: 0.15;
-            border-radius: 35%;
+            border-radius: 38%;
         }
 
         @keyframes wave-move {
@@ -357,13 +356,13 @@
         const themeToggle = document.getElementById('themeToggle');
         const modalOverlay = document.getElementById('modalOverlay');
 
-        // 🌟 Feature 1: Health State Hues (Color State Transitions)
+        // Health State Hues
         function applyStateColors(ratio) {
-            let stateColor = '#f97316'; // Dehydrated default (Orange)
+            let stateColor = '#f97316';
             if (ratio >= 1.0) {
-                stateColor = '#22c55e'; // Optimal hydration (Green)
+                stateColor = '#22c55e';
             } else if (ratio > 0.35) {
-                stateColor = '#38bdf8'; // Mid progress standard blue (Cyan)
+                stateColor = '#38bdf8';
             }
             document.documentElement.style.setProperty('--state-color', stateColor);
             progressCircle.style.stroke = (ratio >= 1.0) ? '#22c55e' : 'var(--water-color)';
@@ -380,11 +379,10 @@
             const offset = CIRCUMFERENCE - (progressRatio * CIRCUMFERENCE);
             progressCircle.style.strokeDashoffset = offset;
 
-            // 🌟 Feature 2: Fluid Animation Transformation Level Mapping
-            // Translates percentage logic into inverted container depth height offsets
-            const translationHeight = 100 - (progressRatio * 100);
-            fluidWave.style.transform = `translateY(${translationHeight}%)`;
-            fluidWaveSec.style.transform = `translateY(${translationHeight - 3}%)`;
+            // 🌟 FIXED: Absolute position top height layer tracking
+            const topPercent = 100 - (progressRatio * 100);
+            fluidWave.style.top = `${topPercent}%`;
+            fluidWaveSec.style.top = `${topPercent - 4}%`;
 
             applyStateColors(progressRatio);
             shareBtn.style.display = (currentIntake >= dailyGoal) ? 'block' : 'none';
@@ -395,13 +393,12 @@
             renderChart();
         }
 
-        // 🌟 Feature 3: Smart Automatic Midnight Reset Tracking Data Logger
+        // Smart Automatic Midnight Reset Tracking Data Logger
         function checkDailyReset() {
             const today = new Date().toDateString();
             const lastOpenDate = localStorage.getItem('lastOpenDate');
 
             if (lastOpenDate && lastOpenDate !== today) {
-                // Shift logs and save yesterday's production results
                 historyLogs.shift();
                 historyLogs.push(parseFloat(currentIntake.toFixed(2)));
                 localStorage.setItem('historyLogs', JSON.stringify(historyLogs));
@@ -417,7 +414,7 @@
             localStorage.setItem('lastOpenDate', today);
         }
 
-        // 🌟 Feature 4: ChartJS Bar Analytics Generation Node
+        // ChartJS Bar Analytics Generation Node
         function renderChart() {
             const ctx = document.getElementById('historyChart').getContext('2d');
             const isLight = document.body.classList.contains('light-theme');
@@ -450,6 +447,11 @@
 
         // Setup Pill Click Behaviors
         volumePills.forEach(pill => {
+            if (parseFloat(pill.dataset.vol) === activeIncrement) {
+                const active = document.querySelector('.vol-pill.active');
+                if (active) active.classList.remove('active');
+                pill.classList.add('active');
+            }
             pill.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const active = document.querySelector('.vol-pill.active');
@@ -505,7 +507,6 @@
             customVolume = customMl / 1000;
             localStorage.setItem('customVolumeValue', customVolume);
 
-            // Dynamically recalculate objective target profile baseline
             const weight = parseFloat(document.getElementById('weightInput').value) || 70;
             const activity = parseFloat(document.getElementById('activityInput').value);
             const climate = parseFloat(document.getElementById('climateInput').value);
