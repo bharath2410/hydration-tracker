@@ -104,7 +104,7 @@ def log_water_api(request):
         except:
             amount = 0.25
 
-        profile = request.profile
+        profile = request.user.profile
         HydrationLog.objects.create(user=request.user, amount=amount)
 
         # Check streak achievements on logging
