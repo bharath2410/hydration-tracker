@@ -124,3 +124,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'tracker', 'static'),
 ]
+
+# Tell Django where to redirect unauthorized users
+LOGIN_URL = 'login'
