@@ -196,6 +196,7 @@
             cursor: pointer;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
 
@@ -296,18 +297,66 @@
             dailyGoal = Math.max(1.5, Math.min(6.0, calculated));
             updateUI();
         }
-
+        
         // Tap Interactions
         tapZone.addEventListener('click', () => {
             if (currentIntake < dailyGoal) {
                 currentIntake += INCREMENT;
                 lastTapped = Date.now();
                 updateUI();
+
+                // Request notification permissions if not yet granted
                 if ("Notification" in window && Notification.permission === "default") {
                     Notification.requestPermission();
                 }
+
+                // 🎉 CELEBRATION TRIGGER 🎉
+                // Check if the user reached their goal exactly on this tap
+                if (currentIntake >= dailyGoal) {
+                    triggerCelebration();
+                }
             }
         });
+
+        // Confetti Animation Function
+        function triggerCelebration() {
+            // Blast 1: Left side shooting up-right
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { x: 0, y: 0.8 }
+            });
+
+            // Blast 2: Right side shooting up-left
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { x: 1, y: 0.8 }
+            });
+
+            // Optional: Continuous celebratory bursts for 2 seconds
+            let duration = 2 * 1000;
+            let end = Date.now() + duration;
+
+            (function frame() {
+                confetti({
+                    particleCount: 3,
+                    angle: 60,
+                    spread: 55,
+                    origin: { x: 0 }
+                });
+                confetti({
+                    particleCount: 3,
+                    angle: 120,
+                    spread: 55,
+                    origin: { x: 1 }
+                });
+
+                if (Date.now() < end) {
+                    requestAnimationFrame(frame);
+                }
+            }());
+        }
 
         resetBtn.addEventListener('click', () => {
             if(confirm("Reset your metrics for today?")) {
