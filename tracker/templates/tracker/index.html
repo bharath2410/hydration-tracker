@@ -3,291 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Hydrate Daily Pro</title>
+    <title>Hydrate Core Pro</title>
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#0f172a" id="themeMetaColor">
-
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <style>
         :root {
-            --bg-color: #0f172a;
-            --circle-bg: #1e293b;
-            --water-color: #38bdf8;
-            --text-color: #f8fafc;
-            --modal-bg: #1e293b;
-            --pill-inactive: #1e293b;
-            --card-border: rgba(255, 255, 255, 0.1);
-            --state-color: #f97316;
+            --bg-color: #0f172a; --circle-bg: #1e293b; --water-color: #38bdf8; --text-color: #f8fafc;
+            --modal-bg: #1e293b; --pill-inactive: #1e293b; --card-border: rgba(255, 255, 255, 0.1); --state-color: #f97316;
         }
-
-        body.light-theme {
-            --bg-color: #f8fafc;
-            --circle-bg: #e2e8f0;
-            --water-color: #0284c7;
-            --text-color: #0f172a;
-            --modal-bg: #ffffff;
-            --pill-inactive: #e2e8f0;
-            --card-border: rgba(0, 0, 0, 0.1);
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            -webkit-user-select: none;
-        }
-
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            align-items: center;
-            height: 100vh;
-            width: 100vw;
-            overflow-x: hidden;
-            overflow-y: auto;
-            transition: background-color 0.3s ease, color 0.3s ease;
-            padding-bottom: 30px;
+            background-color: var(--bg-color); color: var(--text-color); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex; flex-direction: column; align-items: center; height: 100vh; width: 100vw; overflow-x: hidden; overflow-y: auto; padding-bottom: 40px;
         }
-
-        .header {
-            width: 85vw;
-            max-width: 450px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-top: 3vh;
-            z-index: 50;
-        }
-
-        .streak-badge {
-            font-size: 0.9rem;
-            font-weight: bold;
-            background: rgba(249, 115, 22, 0.1);
-            color: var(--state-color);
-            padding: 6px 14px;
-            border-radius: 20px;
-            border: 1px solid var(--state-color);
-            transition: all 0.3s ease;
-        }
-
-        .actions-right { display: flex; gap: 15px; }
-        .icon-btn {
-            background: none; border: none; color: var(--text-color);
-            font-size: 1.4rem; cursor: pointer; opacity: 0.8; transition: transform 0.2s;
-        }
-        .icon-btn:active { transform: scale(0.9); }
-
-        .container {
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 20px;
-            width: 100%;
-            margin-top: 3vh;
-        }
-
-        /* Sensor Permission Warning Bar */
-        .sensor-banner {
-            width: 85vw;
-            max-width: 450px;
-            background: rgba(56, 189, 248, 0.1);
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            border-radius: 12px;
-            padding: 10px;
-            font-size: 0.8rem;
-            color: #38bdf8;
-            cursor: pointer;
-            display: block;
-        }
-
-        /* 🌊 Wave Container Layout */
-        .circle-wrapper {
-            position: relative;
-            width: 65vw;
-            max-width: 250px;
-            aspect-ratio: 1;
-            cursor: pointer;
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 10px 35px rgba(0,0,0,0.15);
-            background: transparent;
-            transition: border 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        /* 🔒 Verification Locked/Unlocked UI States */
-        .circle-wrapper.locked {
-            border: 3px dashed rgba(255,255,255,0.2);
-            box-shadow: none;
-        }
-        .circle-wrapper.unlocked {
-            border: 3px dashed #22c55e;
-            box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
-        }
-
-        .wave-container {
-            position: absolute;
-            width: 88%;
-            height: 88%;
-            border-radius: 50%;
-            overflow: hidden;
-            background: transparent;
-            z-index: 1;
-        }
-
-        .wave {
-            position: absolute;
-            top: 100%;
-            left: -50%;
-            width: 200%;
-            height: 200%;
-            background: var(--water-color);
-            opacity: 0.25;
-            border-radius: 40%;
-            animation: wave-move 6s linear infinite;
-            transition: top 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 1;
-        }
-
-        .wave-secondary {
-            animation: wave-move 9s linear infinite;
-            opacity: 0.15;
-            border-radius: 38%;
-        }
-
-        @keyframes wave-move {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        svg {
-            position: absolute;
-            width: 100%; height: 100%;
-            transform: rotate(-90deg);
-            z-index: 5;
-            pointer-events: none;
-        }
-
-        circle { fill: none; stroke-width: 10; stroke-linecap: round; }
+        .header { width: 85vw; max-width: 450px; display: flex; justify-content: space-between; align-items: center; margin-top: 3vh; }
+        .streak-badge { font-size: 0.9rem; font-weight: bold; background: rgba(249, 115, 22, 0.1); color: var(--state-color); padding: 6px 14px; border-radius: 20px; border: 1px solid var(--state-color); }
+        .logout-link { color: var(--text-color); font-size: 0.85rem; opacity: 0.6; text-decoration: none; }
+        .container { text-align: center; display: flex; flex-direction: column; align-items: center; gap: 20px; width: 100%; margin-top: 2vh; }
+        .sensor-banner { width: 85vw; max-width: 450px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 10px; font-size: 0.8rem; color: #38bdf8; cursor: pointer; }
+        .circle-wrapper { position: relative; width: 62vw; max-width: 240px; aspect-ratio: 1; cursor: pointer; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 10px 35px rgba(0,0,0,0.15); transition: border 0.3s ease; }
+        .circle-wrapper.locked { border: 3px dashed rgba(255,255,255,0.2); }
+        .circle-wrapper.unlocked { border: 3px dashed #22c55e; box-shadow: 0 0 20px rgba(34, 197, 94, 0.3); }
+        .wave-container { position: absolute; width: 88%; height: 88%; border-radius: 50%; overflow: hidden; }
+        .wave { position: absolute; top: 100%; left: -50%; width: 200%; height: 200%; background: var(--water-color); opacity: 0.25; border-radius: 40%; animation: wave-move 6s linear infinite; transition: top 0.6s ease; }
+        .wave-secondary { animation: wave-move 9s linear infinite; opacity: 0.15; border-radius: 38%; }
+        @keyframes wave-move { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        svg { position: absolute; width: 100%; height: 100%; transform: rotate(-90deg); pointer-events: none; }
+        circle { fill: none; stroke-width: 10; }
         .circle-bg { stroke: var(--circle-bg); }
-        .circle-progress {
-            stroke: var(--water-color);
-            stroke-dasharray: 565.4;
-            stroke-dashoffset: 565.4;
-            transition: stroke-dashoffset 0.4s ease, stroke 0.3s ease;
-        }
-
-        .counter-label { text-align: center; z-index: 10; pointer-events: none; }
-        .intake-amount { font-size: 3rem; font-weight: 800; letter-spacing: -1px; }
-        .goal-label { font-size: 0.85rem; opacity: 0.6; margin-top: 2px; }
-        .status-hint { font-size: 0.75rem; color: #f97316; font-weight: bold; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.5px;}
+        .circle-progress { stroke: var(--water-color); stroke-dasharray: 565.4; stroke-dashoffset: 565.4; transition: stroke-dashoffset 0.4s ease; }
+        .counter-label { text-align: center; z-index: 10; }
+        .intake-amount { font-size: 2.8rem; font-weight: 800; }
+        .goal-label { font-size: 0.85rem; opacity: 0.6; }
+        .status-hint { font-size: 0.7rem; color: #f97316; font-weight: bold; margin-top: 4px; text-transform: uppercase; }
         .unlocked .status-hint { color: #22c55e; }
-
-        /* Volume Controls Layout */
-        .volume-selector {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            width: 85vw;
-            max-width: 450px;
-            justify-content: center;
-        }
-
-        .vol-pill {
-            background: var(--pill-inactive);
-            border: 1px solid var(--card-border);
-            color: var(--text-color);
-            padding: 10px 12px;
-            border-radius: 16px;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            flex: 1;
-            min-width: 90px;
-            text-align: center;
-        }
-
-        .vol-pill.active {
-            background: var(--water-color);
-            color: #ffffff;
-            border-color: var(--water-color);
-            transform: scale(1.04);
-        }
-
-        /* 📊 Analytics Dashboard Panel */
-        .chart-card {
-            width: 85vw;
-            max-width: 450px;
-            background: var(--modal-bg);
-            border: 1px solid var(--card-border);
-            border-radius: 20px;
-            padding: 16px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-        }
-
-        .chart-card h3 {
-            font-size: 0.95rem;
-            text-align: left;
-            margin-bottom: 12px;
-            opacity: 0.8;
-            letter-spacing: 0.5px;
-        }
-
-        .bottom-actions { display: flex; flex-direction: column; gap: 10px; width: 85vw; max-width: 450px; }
-        .share-btn {
-            background: #22c55e; color: white; border: none; padding: 12px;
-            border-radius: 14px; font-size: 0.95rem; font-weight: bold; cursor: pointer; display: none;
-        }
-        .reset-btn { background: none; border: 1px solid var(--card-border); color: var(--text-color); padding: 10px; border-radius: 14px; font-size: 0.85rem; cursor: pointer; opacity: 0.4; }
-
-        /* Settings Drawer Panel */
-        .modal-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.4);
-            display: flex; justify-content: center; align-items: flex-end;
-            z-index: 100; visibility: hidden; opacity: 0;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
+        .volume-selector { display: flex; flex-wrap: wrap; gap: 8px; width: 85vw; max-width: 450px; justify-content: center; }
+        .vol-pill { background: var(--pill-inactive); border: 1px solid var(--card-border); color: var(--text-color); padding: 10px; border-radius: 16px; font-size: 0.8rem; font-weight: 600; cursor: pointer; flex: 1; min-width: 90px; text-align: center; }
+        .vol-pill.active { background: var(--water-color); color: #ffffff; border-color: var(--water-color); }
+        .chart-card, .social-card { width: 85vw; max-width: 450px; background: var(--modal-bg); border: 1px solid var(--card-border); border-radius: 20px; padding: 16px; text-align: left; }
+        .chart-card h3, .social-card h3 { font-size: 0.9rem; margin-bottom: 12px; opacity: 0.8; letter-spacing: 0.5px; }
+        .leaderboard-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid var(--card-border); font-size: 0.85rem; }
+        .friend-form { display: flex; gap: 8px; margin-top: 12px; }
+        .friend-form input { flex: 1; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: white; }
+        .friend-form button { padding: 8px 12px; background: var(--water-color); border: none; border-radius: 8px; color: white; font-weight: bold; }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.4); display: flex; justify-content: center; align-items: flex-end; z-index: 100; visibility: hidden; opacity: 0; transition: all 0.3s ease; }
         .modal-overlay.active { visibility: visible; opacity: 1; }
-        .modal {
-            background: var(--modal-bg); width: 100%; max-width: 500px;
-            border-radius: 24px 24px 0 0; padding: 24px;
-            transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+        .modal { background: var(--modal-bg); width: 100%; max-width: 500px; border-radius: 24px 24px 0 0; padding: 24px; transform: translateY(100%); transition: transform 0.3s ease; }
         .modal-overlay.active .modal { transform: translateY(0); }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
         .form-group { margin-bottom: 14px; }
-        .form-group label { display: block; font-size: 0.85rem; opacity: 0.7; margin-bottom: 6px; font-weight: 500; }
-        .form-group input, .form-group select {
-            width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--card-border);
-            background: var(--bg-color); color: var(--text-color); font-size: 1rem; outline: none;
-        }
+        .form-group label { display: block; font-size: 0.85rem; opacity: 0.7; margin-bottom: 6px; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-color); font-size: 1rem; }
         .save-btn { width: 100%; padding: 14px; background: var(--water-color); color: white; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
     <div class="header">
-        <div class="streak-badge" id="streakContainer">🔥 <span id="streakDays">0</span> Day Streak</div>
+        <div class="streak-badge" id="streakContainer">🔥 <span>{{ profile.streak }}</span> Day Streak</div>
         <div class="actions-right">
-            <button class="icon-btn" id="themeToggle">🌓</button>
+            <a href="{% url 'logout' %}" class="logout-link">Logout</a>
             <button class="icon-btn" id="openSettings">⚙️</button>
         </div>
     </div>
 
     <div class="container">
-        <div class="sensor-banner" id="sensorBanner">🔒 Click to enable Motion Verification (Anti-Cheat)</div>
+        <div class="sensor-banner" id="sensorBanner">🔒 Enable Motion Verification (Anti-Cheat)</div>
 
         <div class="circle-wrapper locked" id="tapZone">
             <div class="wave-container">
@@ -299,28 +81,37 @@
                 <circle class="circle-progress" id="progress" cx="100" cy="100" r="90"></circle>
             </svg>
             <div class="counter-label">
-                <div class="intake-amount"><span id="current">0.00</span>L</div>
-                <div class="goal-label">Goal: <span id="goalText">2.50</span>L</div>
+                <div class="intake-amount"><span id="current">{{ current_intake }}</span>L</div>
+                <div class="goal-label">Goal: <span id="goalText">{{ profile.daily_goal }}</span>L</div>
                 <div class="status-hint" id="statusHint">Tilt Phone to Drink</div>
             </div>
         </div>
 
-        <div class="volume-selector" id="pillBox">
-            <div class="vol-pill" data-vol="0.10">Sip (100ml)</div>
+        <div class="volume-selector">
             <div class="vol-pill active" data-vol="0.25">Glass (250ml)</div>
             <div class="vol-pill" data-vol="0.50">Bottle (500ml)</div>
             <div class="vol-pill" data-vol="0.75">Flask (750ml)</div>
-            <div class="vol-pill" id="customPill" data-vol="0.40">Custom (400ml)</div>
+            <div class="vol-pill" id="customPill" data-vol="{{ profile.custom_volume }}">Custom ({{ profile.custom_volume|floatformat:2 }}L)</div>
+        </div>
+
+        <div class="social-card">
+            <h3>FRIENDS LEADERBOARD standings</h3>
+            {% for entry in leaderboard %}
+                <div class="leaderboard-row">
+                    <span>{{ forloop.counter }}. **{{ entry.username }}** (🔥{{ entry.streak }}d)</span>
+                    <span>{{ entry.intake }}L / {{ entry.goal }}L (**{{ entry.ratio }}%**)</span>
+                </div>
+            {% endfor %}
+            <form class="friend-form" action="{% url 'add_friend' %}" method="POST">
+                {% csrf_token %}
+                <input type="text" name="username" placeholder="Friend's Username" required>
+                <button type="submit">Add</button>
+            </form>
         </div>
 
         <div class="chart-card">
             <h3>7-DAY PERFORMANCE LOG</h3>
             <canvas id="historyChart" height="140"></canvas>
-        </div>
-
-        <div class="bottom-actions">
-            <button class="share-btn" id="shareBtn">Share Success 🚀</button>
-            <button class="reset-btn" id="resetBtn">Reset Intake</button>
         </div>
     </div>
 
@@ -332,303 +123,161 @@
             </div>
             <div class="form-group">
                 <label>Body Weight (kg)</label>
-                <input type="number" id="weightInput" value="70">
+                <input type="number" id="weightInput" value="{{ profile.weight }}">
             </div>
             <div class="form-group">
                 <label>Physical Energy Expended</label>
                 <select id="activityInput">
-                    <option value="0">Sedentary (Desk Job)</option>
-                    <option value="0.5">Active (Exercise 30-60m)</option>
-                    <option value="1.0">High Intensity Athlete</option>
+                    <option value="0" {% if profile.activity_level == 0 %}selected{% endif %}>Sedentary</option>
+                    <option value="0.5" {% if profile.activity_level == 0.5 %}selected{% endif %}>Active</option>
+                    <option value="1.0" {% if profile.activity_level == 1.0 %}selected{% endif %}>Athlete</option>
                 </select>
             </div>
             <div class="form-group">
                 <label>Local Ambient Climate</label>
                 <select id="climateInput">
-                    <option value="0">Temperate / AC Room</option>
-                    <option value="0.5">Hot / High Humidity</option>
+                    <option value="0" {% if profile.climate_factor == 0 %}selected{% endif %}>Temperate</option>
+                    <option value="0.5" {% if profile.climate_factor == 0.5 %}selected{% endif %}>Hot / Humid</option>
                 </select>
             </div>
             <div class="form-group">
                 <label>Custom Container Size (ml)</label>
-                <input type="number" id="customVolInput" value="400" min="50" max="2000">
+                <input type="number" id="customVolInput" value="400">
             </div>
-            <button class="save-btn" id="saveSettings">Update Configurations</button>
+            <button class="save-btn" id="saveSettings">Save Configuration</button>
         </div>
     </div>
 
     <script>
         const CIRCUMFERENCE = 2 * Math.PI * 90;
-        let chartInstance = null;
-
-        // Reactive Application State Management
-        let activeIncrement = parseFloat(localStorage.getItem('activeIncrement')) || 0.25;
-        let currentIntake = parseFloat(localStorage.getItem('currentIntake')) || 0;
-        let dailyGoal = parseFloat(localStorage.getItem('dailyGoal')) || 2.50;
-        let lastTapped = parseInt(localStorage.getItem('lastTapped')) || Date.now();
-        let streak = parseInt(localStorage.getItem('hydrationStreak')) || 0;
-        let customVolume = parseFloat(localStorage.getItem('customVolumeValue')) || 0.40;
-        let historyLogs = JSON.parse(localStorage.getItem('historyLogs')) || [0, 0, 0, 0, 0, 0, 0];
-
-        // 🔒 Anti-Cheat Gesture Security Parameters
+        let activeIncrement = 0.25;
+        let currentIntake = parseFloat("{{ current_intake }}");
+        let dailyGoal = parseFloat("{{ profile.daily_goal }}");
+        let historyLogs = {{ history_logs|safe }};
         let isVerifiedDrink = false;
         let maxTiltDetected = false;
 
-        // UI Element Targets
         const progressCircle = document.getElementById('progress');
         const currentText = document.getElementById('current');
         const goalText = document.getElementById('goalText');
-        const streakDays = document.getElementById('streakDays');
         const tapZone = document.getElementById('tapZone');
         const statusHint = document.getElementById('statusHint');
-        const sensorBanner = document.getElementById('sensorBanner');
         const fluidWave = document.getElementById('fluidWave');
         const fluidWaveSec = document.getElementById('fluidWaveSec');
-        const volumePills = document.querySelectorAll('.vol-pill');
-        const customPill = document.getElementById('customPill');
-        const shareBtn = document.getElementById('shareBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const themeToggle = document.getElementById('themeToggle');
         const modalOverlay = document.getElementById('modalOverlay');
-
-        // Health State Hues
-        function applyStateColors(ratio) {
-            let stateColor = '#f97316';
-            if (ratio >= 1.0) stateColor = '#22c55e';
-            else if (ratio > 0.35) stateColor = '#38bdf8';
-            document.documentElement.style.setProperty('--state-color', stateColor);
-            progressCircle.style.stroke = (ratio >= 1.0) ? '#22c55e' : 'var(--water-color)';
-        }
 
         function updateUI() {
             currentText.textContent = currentIntake.toFixed(2);
             goalText.textContent = dailyGoal.toFixed(2);
-            streakDays.textContent = streak;
-            customPill.textContent = `Custom (${(customVolume * 1000).toFixed(0)}ml)`;
-            customPill.dataset.vol = customVolume;
 
-            const progressRatio = Math.min(currentIntake / dailyGoal, 1);
-            const offset = CIRCUMFERENCE - (progressRatio * CIRCUMFERENCE);
-            progressCircle.style.strokeDashoffset = offset;
+            const ratio = Math.min(currentIntake / dailyGoal, 1);
+            progressCircle.style.strokeDashoffset = CIRCUMFERENCE - (ratio * CIRCUMFERENCE);
 
-            const topPercent = 100 - (progressRatio * 100);
+            const topPercent = 100 - (ratio * 100);
             fluidWave.style.top = `${topPercent}%`;
             fluidWaveSec.style.top = `${topPercent - 4}%`;
 
-            applyStateColors(progressRatio);
-            shareBtn.style.display = (currentIntake >= dailyGoal) ? 'block' : 'none';
-
-            // Visual tracking lock verification cues
             if (isVerifiedDrink) {
-                tapZone.classList.remove('locked');
-                tapZone.classList.add('unlocked');
-                statusHint.textContent = "Drink Confirmed! Tap Circle";
+                tapZone.classList.replace('locked', 'unlocked');
+                statusHint.textContent = "Drink Confirmed! Tap";
             } else {
-                tapZone.classList.remove('unlocked');
-                tapZone.classList.add('locked');
+                tapZone.classList.replace('unlocked', 'locked');
                 statusHint.textContent = "Tilt Phone to Drink";
             }
-
-            localStorage.setItem('currentIntake', currentIntake);
-            localStorage.setItem('dailyGoal', dailyGoal);
-            localStorage.setItem('lastTapped', lastTapped);
-            renderChart();
         }
 
-        // 🌟 Feature: Accelerometer Gesture Verification Engine (Anti-Cheat)
+        // Accelerometer Gesture Handling Engine (Anti-Cheat)
         function handleMotion(event) {
-            // Beta represents front-to-back tilt in degrees [-180, 180]
             const tilt = event.beta;
-
-            // Step A: Check if the user has tilted the phone up to their mouth (e.g., > 65 degrees)
-            if (tilt > 65) {
-                maxTiltDetected = true;
-            }
-
-            // Step B: User returns phone back down down to normal reading angle (< 35 degrees) after tilt
+            if (tilt > 65) maxTiltDetected = true;
             if (maxTiltDetected && tilt < 35) {
                 isVerifiedDrink = true;
-                maxTiltDetected = false; // Reset temporary threshold flag
+                maxTiltDetected = false;
                 updateUI();
-
-                // Add a small vibrate pulse if supported by device hardware for tactile confirmation
                 if (navigator.vibrate) navigator.vibrate(60);
             }
         }
 
-        // Handle requesting motion permissions (Required by iOS Safari)
-        sensorBanner.addEventListener('click', () => {
+        document.getElementById('sensorBanner').addEventListener('click', () => {
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                DeviceOrientationEvent.requestPermission()
-                    .then(permissionState => {
-                        if (permissionState === 'granted') {
-                            window.addEventListener('deviceorientation', handleMotion);
-                            sensorBanner.style.display = 'none';
-                        } else {
-                            alert("Permission denied. Anti-cheat cannot run.");
-                        }
-                    }).catch(console.error);
-            } else {
-                // Android standard declaration handling
-                window.addEventListener('deviceorientation', handleMotion);
-                sensorBanner.style.display = 'none';
-            }
-        });
-
-        // Smart Automatic Midnight Reset Tracking Data Logger
-        function checkDailyReset() {
-            const today = new Date().toDateString();
-            const lastOpenDate = localStorage.getItem('lastOpenDate');
-
-            if (lastOpenDate && lastOpenDate !== today) {
-                historyLogs.shift();
-                historyLogs.push(parseFloat(currentIntake.toFixed(2)));
-                localStorage.setItem('historyLogs', JSON.stringify(historyLogs));
-
-                const lastStreakDate = localStorage.getItem('lastStreakDate');
-                if (lastStreakDate !== lastOpenDate && currentIntake < dailyGoal) {
-                    streak = 0;
-                    localStorage.setItem('hydrationStreak', 0);
-                }
-                currentIntake = 0;
-                localStorage.setItem('currentIntake', 0);
-            }
-            localStorage.setItem('lastOpenDate', today);
-        }
-
-        // ChartJS Analytics Rendering
-        function renderChart() {
-            const ctx = document.getElementById('historyChart').getContext('2d');
-            const isLight = document.body.classList.contains('light-theme');
-            const gridColor = isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)';
-            const txtColor = isLight ? '#0f172a' : '#f8fafc';
-
-            if (chartInstance) chartInstance.destroy();
-
-            chartInstance = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-                    datasets: [{
-                        label: 'Intake (L)',
-                        data: historyLogs,
-                        backgroundColor: '#38bdf8',
-                        borderRadius: 6
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { display: false } },
-                    scales: {
-                        x: { grid: { display: false }, ticks: { color: txtColor, font: { size: 10 } } },
-                        y: { grid: { color: gridColor }, ticks: { color: txtColor, font: { size: 10 } } }
+                DeviceOrientationEvent.requestPermission().then(state => {
+                    if (state === 'granted') {
+                        window.addEventListener('deviceorientation', handleMotion);
+                        document.getElementById('sensorBanner').style.display = 'none';
                     }
-                }
-            });
-        }
-
-        // Pill Selection Setup
-        volumePills.forEach(pill => {
-            if (parseFloat(pill.dataset.vol) === activeIncrement) {
-                const active = document.querySelector('.vol-pill.active');
-                if (active) active.classList.remove('active');
-                pill.classList.add('active');
+                });
+            } else {
+                window.addEventListener('deviceorientation', handleMotion);
+                document.getElementById('sensorBanner').style.display = 'none';
             }
-            pill.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const active = document.querySelector('.vol-pill.active');
-                if (active) active.classList.remove('active');
-                pill.classList.add('active');
-                activeIncrement = parseFloat(pill.dataset.vol);
-                localStorage.setItem('activeIncrement', activeIncrement);
-            });
         });
 
-        // Main Metric Intake Log Trigger (Now Protected by Gesture Lock)
+        // AJAX POST Logging Request directly back to backend DB views
         tapZone.addEventListener('click', () => {
-            // 🔒 CRITICAL SECURITY CHECK: Lock active until physical drink tilt confirmed
             if (!isVerifiedDrink) {
-                alert("Anti-Cheat Active: Please take an actual sip and tilt your device upward to log water intake!");
+                alert("Anti-Cheat Active: Please perform an actual drink gesture before logging!");
                 return;
             }
 
-            if (currentIntake < dailyGoal) {
-                currentIntake += activeIncrement;
-                lastTapped = Date.now();
-                isVerifiedDrink = false; // 🔒 Re-lock verification until next sip gesture
-                updateUI();
-
-                if (currentIntake >= dailyGoal) {
-                    triggerCelebration();
-                    let today = new Date().toDateString();
-                    if (localStorage.getItem('lastStreakDate') !== today) {
-                        streak++;
-                        localStorage.setItem('hydrationStreak', streak);
-                        localStorage.setItem('lastStreakDate', today);
-                        updateUI();
-                    }
+            fetch("{% url 'log_water_api' %}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" },
+                body: JSON.stringify({ amount: activeIncrement })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    currentIntake += activeIncrement;
+                    isVerifiedDrink = false;
+                    if (currentIntake >= dailyGoal) confetti();
+                    updateUI();
                 }
-            }
+            });
         });
 
-        function triggerCelebration() {
-            confetti({ particleCount: 80, spread: 60, origin: { x: 0, y: 0.8 } });
-            confetti({ particleCount: 80, spread: 60, origin: { x: 1, y: 0.8 } });
-        }
-
-        // Settings Dialog Setup
-        document.getElementById('openSettings').addEventListener('click', () => {
-            document.getElementById('weightInput').value = localStorage.getItem('userWeight') || 70;
-            document.getElementById('activityInput').value = localStorage.getItem('userActivity') || 0;
-            document.getElementById('climateInput').value = localStorage.getItem('userClimate') || 0;
-            document.getElementById('customVolInput').value = customVolume * 1000;
-            modalOverlay.classList.add('active');
+        // Pill controls selector setup
+        document.querySelectorAll('.vol-pill').forEach(pill => {
+            pill.addEventListener('click', () => {
+                document.querySelector('.vol-pill.active').classList.remove('active');
+                pill.classList.add('active');
+                activeIncrement = parseFloat(pill.dataset.vol);
+            });
         });
 
+        // Modal triggers
+        document.getElementById('openSettings').addEventListener('click', () => modalOverlay.classList.add('active'));
         document.getElementById('closeSettings').addEventListener('click', () => modalOverlay.classList.remove('active'));
 
         document.getElementById('saveSettings').addEventListener('click', () => {
-            localStorage.setItem('userWeight', document.getElementById('weightInput').value);
-            localStorage.setItem('userActivity', document.getElementById('activityInput').value);
-            localStorage.setItem('userClimate', document.getElementById('climateInput').value);
+            const payload = {
+                weight: document.getElementById('weightInput').value,
+                activity: document.getElementById('activityInput').value,
+                climate: document.getElementById('climateInput').value,
+                custom_ml: document.getElementById('customVolInput').value
+            };
 
-            const customMl = parseFloat(document.getElementById('customVolInput').value) || 400;
-            customVolume = customMl / 1000;
-            localStorage.setItem('customVolumeValue', customVolume);
-
-            const weight = parseFloat(document.getElementById('weightInput').value) || 70;
-            const activity = parseFloat(document.getElementById('activityInput').value);
-            const climate = parseFloat(document.getElementById('climateInput').value);
-            dailyGoal = Math.max(1.5, Math.min(6.0, (weight * 0.035) + activity + climate));
-
-            modalOverlay.classList.remove('active');
-            updateUI();
+            fetch("{% url 'update_profile_api' %}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.status === 'success') location.reload();
+            });
         });
 
-        // Theme Toggle Processing
-        if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-theme');
-        themeToggle.addEventListener('click', () => {
-            document.body.classList.toggle('light-theme');
-            localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
-            updateUI();
+        // ChartJS Analytics Rendering
+        const ctx = document.getElementById('historyChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{ data: historyLogs, backgroundColor: '#38bdf8', borderRadius: 6 }]
+            },
+            options: { responsive: true, plugins: { legend: { display: false } } }
         });
 
-        resetBtn.addEventListener('click', () => {
-            if (confirm("Reset current records for today?")) {
-                currentIntake = 0;
-                isVerifiedDrink = false;
-                updateUI();
-            }
-        });
-
-        shareBtn.addEventListener('click', () => {
-            if (navigator.share) {
-                navigator.share({ title: 'Goal Hit!', text: `Crushed my ${dailyGoal.toFixed(2)}L water target today! Streak: ${streak} Days!`, url: window.location.href });
-            }
-        });
-
-        // Run Startup Cycles
-        checkDailyReset();
         updateUI();
     </script>
 </body>

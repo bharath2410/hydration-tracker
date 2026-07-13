@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register - Hydrate Daily</title>
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .box { background: #1e293b; padding: 30px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); width: 300px; text-align: center; }
+        input { width: 100%; padding: 10px; margin: 10px 0; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: #0f172a; color: white; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #38bdf8; border: none; border-radius: 8px; color: #0f172a; font-weight: bold; cursor: pointer; }
+        a { color: #38bdf8; font-size: 0.85rem; text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>Get Started</h2>
+        <form method="POST">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Register</button>
+        </form>
+        <p style="margin-top:15px;"><a href="/login/">Already have an account? Log in</a></p>
+    </div>
+</body>
+</html>
