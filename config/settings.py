@@ -56,7 +56,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -125,5 +125,7 @@ STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'tracker', 'static'),
 ]
 
-# Tell Django where to redirect unauthorized users
+# Route users to the main dashboard after successful sign-in
 LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'index'
+LOGOUT_REDIRECT_URL = 'login'
