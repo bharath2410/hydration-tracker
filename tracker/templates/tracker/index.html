@@ -89,16 +89,30 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 25px;
+            gap: 20px;
             width: 100%;
-            margin-top: 4vh;
+            margin-top: 3vh;
         }
 
-        /* 🌊 Fixed Wave Container Layout */
+        /* Sensor Permission Warning Bar */
+        .sensor-banner {
+            width: 85vw;
+            max-width: 450px;
+            background: rgba(56, 189, 248, 0.1);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            border-radius: 12px;
+            padding: 10px;
+            font-size: 0.8rem;
+            color: #38bdf8;
+            cursor: pointer;
+            display: block;
+        }
+
+        /* 🌊 Wave Container Layout */
         .circle-wrapper {
             position: relative;
             width: 65vw;
-            max-width: 260px;
+            max-width: 250px;
             aspect-ratio: 1;
             cursor: pointer;
             border-radius: 50%;
@@ -107,6 +121,17 @@
             align-items: center;
             box-shadow: 0 10px 35px rgba(0,0,0,0.15);
             background: transparent;
+            transition: border 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        /* 🔒 Verification Locked/Unlocked UI States */
+        .circle-wrapper.locked {
+            border: 3px dashed rgba(255,255,255,0.2);
+            box-shadow: none;
+        }
+        .circle-wrapper.unlocked {
+            border: 3px dashed #22c55e;
+            box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
         }
 
         .wave-container {
@@ -121,7 +146,7 @@
 
         .wave {
             position: absolute;
-            top: 100%; /* Start completely hidden below the circle */
+            top: 100%;
             left: -50%;
             width: 200%;
             height: 200%;
@@ -163,7 +188,9 @@
 
         .counter-label { text-align: center; z-index: 10; pointer-events: none; }
         .intake-amount { font-size: 3rem; font-weight: 800; letter-spacing: -1px; }
-        .goal-label { font-size: 0.9rem; opacity: 0.6; margin-top: 2px; }
+        .goal-label { font-size: 0.85rem; opacity: 0.6; margin-top: 2px; }
+        .status-hint { font-size: 0.75rem; color: #f97316; font-weight: bold; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.5px;}
+        .unlocked .status-hint { color: #22c55e; }
 
         /* Volume Controls Layout */
         .volume-selector {
@@ -205,7 +232,6 @@
             border: 1px solid var(--card-border);
             border-radius: 20px;
             padding: 16px;
-            margin-top: 10px;
             box-shadow: 0 4px 20px rgba(0,0,0,0.05);
         }
 
@@ -261,7 +287,9 @@
     </div>
 
     <div class="container">
-        <div class="circle-wrapper" id="tapZone">
+        <div class="sensor-banner" id="sensorBanner">🔒 Click to enable Motion Verification (Anti-Cheat)</div>
+
+        <div class="circle-wrapper locked" id="tapZone">
             <div class="wave-container">
                 <div class="wave" id="fluidWave"></div>
                 <div class="wave wave-secondary" id="fluidWaveSec"></div>
@@ -273,6 +301,7 @@
             <div class="counter-label">
                 <div class="intake-amount"><span id="current">0.00</span>L</div>
                 <div class="goal-label">Goal: <span id="goalText">2.50</span>L</div>
+                <div class="status-hint" id="statusHint">Tilt Phone to Drink</div>
             </div>
         </div>
 
@@ -341,12 +370,18 @@
         let customVolume = parseFloat(localStorage.getItem('customVolumeValue')) || 0.40;
         let historyLogs = JSON.parse(localStorage.getItem('historyLogs')) || [0, 0, 0, 0, 0, 0, 0];
 
-        // UI Element Selection Targets
+        // 🔒 Anti-Cheat Gesture Security Parameters
+        let isVerifiedDrink = false;
+        let maxTiltDetected = false;
+
+        // UI Element Targets
         const progressCircle = document.getElementById('progress');
         const currentText = document.getElementById('current');
         const goalText = document.getElementById('goalText');
         const streakDays = document.getElementById('streakDays');
         const tapZone = document.getElementById('tapZone');
+        const statusHint = document.getElementById('statusHint');
+        const sensorBanner = document.getElementById('sensorBanner');
         const fluidWave = document.getElementById('fluidWave');
         const fluidWaveSec = document.getElementById('fluidWaveSec');
         const volumePills = document.querySelectorAll('.vol-pill');
@@ -359,11 +394,8 @@
         // Health State Hues
         function applyStateColors(ratio) {
             let stateColor = '#f97316';
-            if (ratio >= 1.0) {
-                stateColor = '#22c55e';
-            } else if (ratio > 0.35) {
-                stateColor = '#38bdf8';
-            }
+            if (ratio >= 1.0) stateColor = '#22c55e';
+            else if (ratio > 0.35) stateColor = '#38bdf8';
             document.documentElement.style.setProperty('--state-color', stateColor);
             progressCircle.style.stroke = (ratio >= 1.0) ? '#22c55e' : 'var(--water-color)';
         }
@@ -379,7 +411,6 @@
             const offset = CIRCUMFERENCE - (progressRatio * CIRCUMFERENCE);
             progressCircle.style.strokeDashoffset = offset;
 
-            // 🌟 FIXED: Absolute position top height layer tracking
             const topPercent = 100 - (progressRatio * 100);
             fluidWave.style.top = `${topPercent}%`;
             fluidWaveSec.style.top = `${topPercent - 4}%`;
@@ -387,11 +418,62 @@
             applyStateColors(progressRatio);
             shareBtn.style.display = (currentIntake >= dailyGoal) ? 'block' : 'none';
 
+            // Visual tracking lock verification cues
+            if (isVerifiedDrink) {
+                tapZone.classList.remove('locked');
+                tapZone.classList.add('unlocked');
+                statusHint.textContent = "Drink Confirmed! Tap Circle";
+            } else {
+                tapZone.classList.remove('unlocked');
+                tapZone.classList.add('locked');
+                statusHint.textContent = "Tilt Phone to Drink";
+            }
+
             localStorage.setItem('currentIntake', currentIntake);
             localStorage.setItem('dailyGoal', dailyGoal);
             localStorage.setItem('lastTapped', lastTapped);
             renderChart();
         }
+
+        // 🌟 Feature: Accelerometer Gesture Verification Engine (Anti-Cheat)
+        function handleMotion(event) {
+            // Beta represents front-to-back tilt in degrees [-180, 180]
+            const tilt = event.beta;
+
+            // Step A: Check if the user has tilted the phone up to their mouth (e.g., > 65 degrees)
+            if (tilt > 65) {
+                maxTiltDetected = true;
+            }
+
+            // Step B: User returns phone back down down to normal reading angle (< 35 degrees) after tilt
+            if (maxTiltDetected && tilt < 35) {
+                isVerifiedDrink = true;
+                maxTiltDetected = false; // Reset temporary threshold flag
+                updateUI();
+
+                // Add a small vibrate pulse if supported by device hardware for tactile confirmation
+                if (navigator.vibrate) navigator.vibrate(60);
+            }
+        }
+
+        // Handle requesting motion permissions (Required by iOS Safari)
+        sensorBanner.addEventListener('click', () => {
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                DeviceOrientationEvent.requestPermission()
+                    .then(permissionState => {
+                        if (permissionState === 'granted') {
+                            window.addEventListener('deviceorientation', handleMotion);
+                            sensorBanner.style.display = 'none';
+                        } else {
+                            alert("Permission denied. Anti-cheat cannot run.");
+                        }
+                    }).catch(console.error);
+            } else {
+                // Android standard declaration handling
+                window.addEventListener('deviceorientation', handleMotion);
+                sensorBanner.style.display = 'none';
+            }
+        });
 
         // Smart Automatic Midnight Reset Tracking Data Logger
         function checkDailyReset() {
@@ -414,7 +496,7 @@
             localStorage.setItem('lastOpenDate', today);
         }
 
-        // ChartJS Bar Analytics Generation Node
+        // ChartJS Analytics Rendering
         function renderChart() {
             const ctx = document.getElementById('historyChart').getContext('2d');
             const isLight = document.body.classList.contains('light-theme');
@@ -445,7 +527,7 @@
             });
         }
 
-        // Setup Pill Click Behaviors
+        // Pill Selection Setup
         volumePills.forEach(pill => {
             if (parseFloat(pill.dataset.vol) === activeIncrement) {
                 const active = document.querySelector('.vol-pill.active');
@@ -462,11 +544,18 @@
             });
         });
 
-        // Main Metric Intake Log Trigger
+        // Main Metric Intake Log Trigger (Now Protected by Gesture Lock)
         tapZone.addEventListener('click', () => {
+            // 🔒 CRITICAL SECURITY CHECK: Lock active until physical drink tilt confirmed
+            if (!isVerifiedDrink) {
+                alert("Anti-Cheat Active: Please take an actual sip and tilt your device upward to log water intake!");
+                return;
+            }
+
             if (currentIntake < dailyGoal) {
                 currentIntake += activeIncrement;
                 lastTapped = Date.now();
+                isVerifiedDrink = false; // 🔒 Re-lock verification until next sip gesture
                 updateUI();
 
                 if (currentIntake >= dailyGoal) {
@@ -487,7 +576,7 @@
             confetti({ particleCount: 80, spread: 60, origin: { x: 1, y: 0.8 } });
         }
 
-        // Settings Dialog Logic Execution
+        // Settings Dialog Setup
         document.getElementById('openSettings').addEventListener('click', () => {
             document.getElementById('weightInput').value = localStorage.getItem('userWeight') || 70;
             document.getElementById('activityInput').value = localStorage.getItem('userActivity') || 0;
@@ -525,7 +614,11 @@
         });
 
         resetBtn.addEventListener('click', () => {
-            if (confirm("Reset current records for today?")) { currentIntake = 0; updateUI(); }
+            if (confirm("Reset current records for today?")) {
+                currentIntake = 0;
+                isVerifiedDrink = false;
+                updateUI();
+            }
         });
 
         shareBtn.addEventListener('click', () => {
