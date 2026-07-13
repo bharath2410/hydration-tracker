@@ -7,5 +7,13 @@
   "theme_color": "#0f172a",
   "orientation": "portrait",
   "scope": "/",
-  "description": "Minimalist, tailored water tracking to enhance performance during intense work windows."
+  "description": "Minimalist, tailored water tracking to enhance performance during intense work windows.",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3100/3100561.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
 }
