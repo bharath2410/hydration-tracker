@@ -511,6 +511,14 @@
 
         // Render Configuration State
         updateUI();
+    // Register the Service Worker for PWA compliance
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then(reg => console.log('Service Worker Registered!', reg))
+                .catch(err => console.error('Service Worker Registration Failed', err));
+        });
+    }
     </script>
 </body>
 </html>
