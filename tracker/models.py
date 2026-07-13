@@ -23,7 +23,7 @@ class UserProfile(models.Model):
     @property
     def current_intake(self):
         today = timezone.localdate()
-        logs = HydrationLog.models.filter(user=self.user, timestamp__date=today)
+        logs = HydrationLog.objects.filter(user=self.user, timestamp__date=today)
         total = sum(log.amount for log in logs)
         return max(0.0, total)
 
