@@ -27,6 +27,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+# 🌟 Core Security fix: Tell Django to trust your live Railway production URL domain
+CSRF_TRUSTED_ORIGINS = [
+    'https://hydration-tracker-production-7cc0.up.railway.app',
+]
 
 # Application definition
 
