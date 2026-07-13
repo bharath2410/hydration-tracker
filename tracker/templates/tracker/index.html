@@ -80,11 +80,13 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
             transition: transform 0.1s ease;
         }
 
-        .circle-wrapper:active { transform: scale(0.96); }
+        .circle-wrapper:active {
+            transform: scale(0.96);
+        }
 
         svg {
             position: absolute;
@@ -99,7 +101,10 @@
             stroke-linecap: round;
         }
 
-        .circle-bg { stroke: var(--circle-bg); }
+        .circle-bg {
+            stroke: var(--circle-bg);
+        }
+
         .circle-progress {
             stroke: var(--water-color);
             stroke-dasharray: 565.4;
@@ -107,12 +112,25 @@
             transition: stroke-dashoffset 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .counter-label { text-align: center; z-index: 10; }
-        .intake-amount { font-size: 3rem; font-weight: bold; }
-        .goal-label { font-size: 1rem; opacity: 0.6; margin-top: 4px; }
+        .counter-label {
+            text-align: center;
+            z-index: 10;
+        }
+
+        .intake-amount {
+            font-size: 3rem;
+            font-weight: bold;
+        }
+
+        .goal-label {
+            font-size: 1rem;
+            opacity: 0.6;
+            margin-top: 4px;
+        }
+
         .reset-btn {
             background: none;
-            border: 1px solid rgba(255,255,255,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             color: var(--text-color);
             padding: 8px 16px;
             border-radius: 20px;
@@ -124,8 +142,11 @@
         /* Settings Modal Overlay */
         .modal-overlay {
             position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.5);
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.5);
             display: flex;
             justify-content: center;
             align-items: flex-end;
@@ -146,7 +167,7 @@
             max-width: 500px;
             border-radius: 24px 24px 0 0;
             padding: 24px;
-            box-shadow: 0 -10px 25px rgba(0,0,0,0.5);
+            box-shadow: 0 -10px 25px rgba(0, 0, 0, 0.5);
             transform: translateY(100%);
             transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
@@ -177,7 +198,7 @@
             width: 100%;
             padding: 12px;
             border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.1);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             background: #0f172a;
             color: white;
             font-size: 1rem;
@@ -195,213 +216,257 @@
             margin-top: 10px;
             cursor: pointer;
         }
+
+        .volume-selector {
+            display: flex;
+            gap: 8px;
+            margin-top: 15px;
+            justify-content: center;
+            width: 85vw;
+            max-width: 400px;
+        }
+
+        .vol-pill {
+            background: var(--circle-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1;
+            text-align: center;
+        }
+
+        .vol-pill.active {
+            background: var(--water-color);
+            color: #0f172a;
+            font-weight: bold;
+            border-color: var(--water-color);
+            transform: scale(1.05);
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 </head>
 <body>
 
-    <div class="header">
-        <h1>Hydrate</h1>
-        <button class="settings-btn" id="openSettings">⚙️</button>
-    </div>
+<div class="header">
+    <h1>Hydrate</h1>
+    <button class="settings-btn" id="openSettings">⚙️</button>
+</div>
 
-    <div class="container">
-        <div class="circle-wrapper" id="tapZone">
-            <svg viewBox="0 0 200 200">
-                <circle class="circle-bg" cx="100" cy="100" r="90"></circle>
-                <circle class="circle-progress" id="progress" cx="100" cy="100" r="90"></circle>
-            </svg>
-            <div class="counter-label">
-                <div class="intake-amount"><span id="current">0</span>L</div>
-                <div class="goal-label">Goal: <span id="goalText">3.00</span>L</div>
-            </div>
-        </div>
-        <button class="reset-btn" id="resetBtn">Reset Day</button>
-    </div>
-
-    <!-- Configuration Panel -->
-    <div class="modal-overlay" id="modalOverlay">
-        <div class="modal">
-            <div class="modal-header">
-                <h2>Hydration Settings</h2>
-                <button class="settings-btn" id="closeSettings">✕</button>
-            </div>
-            <div class="form-group">
-                <label>Weight (kg)</label>
-                <input type="number" id="weightInput" value="70" min="30" max="200">
-            </div>
-            <div class="form-group">
-                <label>Daily Activity Level</label>
-                <select id="activityInput">
-                    <option value="0">Sedentary (Desk job / Gaming)</option>
-                    <option value="0.5">Moderate (30-60 mins active)</option>
-                    <option value="1.0">High / Athlete (Intense exercise)</option>
-                </select>
-            </div>
-            <div class="form-group">
-                <label>Climate / Weather</label>
-                <select id="climateInput">
-                    <option value="0">Cool / Air Conditioned</option>
-                    <option value="0.5">Hot / Humid Environment</option>
-                </select>
-            </div>
-            <button class="save-btn" id="saveSettings">Calculate & Save</button>
+<div class="container">
+    <div class="circle-wrapper" id="tapZone">
+        <svg viewBox="0 0 200 200">
+            <circle class="circle-bg" cx="100" cy="100" r="90"></circle>
+            <circle class="circle-progress" id="progress" cx="100" cy="100" r="90"></circle>
+        </svg>
+        <div class="counter-label">
+            <div class="intake-amount"><span id="current">0</span>L</div>
+            <div class="goal-label">Goal: <span id="goalText">3.00</span>L</div>
         </div>
     </div>
 
-    <script>
-        const CIRCUMFERENCE = 2 * Math.PI * 90;
-        const INCREMENT = 0.25; // 250ml per glass tap
+    <div class="volume-selector">
+        <div class="vol-pill" data-vol="0.10">Sip (100ml)</div>
+        <div class="vol-pill active" data-vol="0.25">Glass (250ml)</div>
+        <div class="vol-pill" data-vol="0.50">Bottle (500ml)</div>
+        <div class="vol-pill" data-vol="0.75">Flask (750ml)</div>
+    </div>
 
-        // State variables retrieved from local storage
-        let currentIntake = parseFloat(localStorage.getItem('currentIntake')) || 0;
-        let dailyGoal = parseFloat(localStorage.getItem('dailyGoal')) || 3.0;
-        let lastTapped = parseInt(localStorage.getItem('lastTapped')) || Date.now();
+    <button class="reset-btn" id="resetBtn">Reset Day</button>
+</div>
 
-        // UI Target Elements
-        const progressCircle = document.getElementById('progress');
-        const currentText = document.getElementById('current');
-        const goalText = document.getElementById('goalText');
-        const tapZone = document.getElementById('tapZone');
-        const resetBtn = document.getElementById('resetBtn');
+<!-- Configuration Panel -->
+<div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+        <div class="modal-header">
+            <h2>Hydration Settings</h2>
+            <button class="settings-btn" id="closeSettings">✕</button>
+        </div>
+        <div class="form-group">
+            <label>Weight (kg)</label>
+            <input type="number" id="weightInput" value="70" min="30" max="200">
+        </div>
+        <div class="form-group">
+            <label>Daily Activity Level</label>
+            <select id="activityInput">
+                <option value="0">Sedentary (Desk job / Gaming)</option>
+                <option value="0.5">Moderate (30-60 mins active)</option>
+                <option value="1.0">High / Athlete (Intense exercise)</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Climate / Weather</label>
+            <select id="climateInput">
+                <option value="0">Cool / Air Conditioned</option>
+                <option value="0.5">Hot / Humid Environment</option>
+            </select>
+        </div>
+        <button class="save-btn" id="saveSettings">Calculate & Save</button>
+    </div>
+</div>
 
-        // Modal Control Elements
-        const modalOverlay = document.getElementById('modalOverlay');
-        const openSettings = document.getElementById('openSettings');
-        const closeSettings = document.getElementById('closeSettings');
-        const saveSettings = document.getElementById('saveSettings');
+<script>
+    const CIRCUMFERENCE = 2 * Math.PI * 90;
 
-        function updateUI() {
-            currentText.textContent = currentIntake.toFixed(2);
-            goalText.textContent = dailyGoal.toFixed(2);
+    // 🌟 State variables retrieved from local storage (with dynamic volume tracking)
+    let activeIncrement = parseFloat(localStorage.getItem('activeIncrement')) || 0.25;
+    let currentIntake = parseFloat(localStorage.getItem('currentIntake')) || 0;
+    let dailyGoal = parseFloat(localStorage.getItem('dailyGoal')) || 3.0;
+    let lastTapped = parseInt(localStorage.getItem('lastTapped')) || Date.now();
 
-            const progressRatio = Math.min(currentIntake / dailyGoal, 1);
-            const offset = CIRCUMFERENCE - (progressRatio * CIRCUMFERENCE);
-            progressCircle.style.strokeDashoffset = offset;
+    // UI Target Elements
+    const progressCircle = document.getElementById('progress');
+    const currentText = document.getElementById('current');
+    const goalText = document.getElementById('goalText');
+    const tapZone = document.getElementById('tapZone');
+    const resetBtn = document.getElementById('resetBtn');
+    const volumePills = document.querySelectorAll('.vol-pill'); // 🌟 Added target for your volume options
 
-            localStorage.setItem('currentIntake', currentIntake);
-            localStorage.setItem('dailyGoal', dailyGoal);
-            localStorage.setItem('lastTapped', lastTapped);
+    // Modal Control Elements
+    const modalOverlay = document.getElementById('modalOverlay');
+    const openSettings = document.getElementById('openSettings');
+    const closeSettings = document.getElementById('closeSettings');
+    const saveSettings = document.getElementById('saveSettings');
+
+    function updateUI() {
+        currentText.textContent = currentIntake.toFixed(2);
+        goalText.textContent = dailyGoal.toFixed(2);
+
+        const progressRatio = Math.min(currentIntake / dailyGoal, 1);
+        const offset = CIRCUMFERENCE - (progressRatio * CIRCUMFERENCE);
+        progressCircle.style.strokeDashoffset = offset;
+
+        localStorage.setItem('currentIntake', currentIntake);
+        localStorage.setItem('dailyGoal', dailyGoal);
+        localStorage.setItem('lastTapped', lastTapped);
+    }
+
+    // 🌟 Initialize & handle Volume Selection Presets
+    volumePills.forEach(pill => {
+        // Highlight correct active selection from last session
+        if (parseFloat(pill.dataset.vol) === activeIncrement) {
+            const activePill = document.querySelector('.vol-pill.active');
+            if (activePill) activePill.classList.remove('active');
+            pill.classList.add('active');
         }
 
-        // Calculate dynamic goal based on profile factors
-        function calculateGoal() {
-            const weight = parseFloat(document.getElementById('weightInput').value) || 70;
-            const activityAdd = parseFloat(document.getElementById('activityInput').value);
-            const climateAdd = parseFloat(document.getElementById('climateInput').value);
+        // Handle clicking alternative container sizes
+        pill.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevents clicking a pill from triggering a main circle tap!
+            const activePill = document.querySelector('.vol-pill.active');
+            if (activePill) activePill.classList.remove('active');
+            pill.classList.add('active');
 
-            // Baseline: 35ml per kg of body weight
-            let calculated = (weight * 0.035) + activityAdd + climateAdd;
+            activeIncrement = parseFloat(pill.dataset.vol);
+            localStorage.setItem('activeIncrement', activeIncrement);
+        });
+    });
 
-            // Set reasonable safety caps (min 1.5L, max 6L)
-            dailyGoal = Math.max(1.5, Math.min(6.0, calculated));
+    // Calculate dynamic goal based on profile factors
+    function calculateGoal() {
+        const weight = parseFloat(document.getElementById('weightInput').value) || 70;
+        const activityAdd = parseFloat(document.getElementById('activityInput').value);
+        const climateAdd = parseFloat(document.getElementById('climateInput').value);
+
+        // Baseline: 35ml per kg of body weight
+        let calculated = (weight * 0.035) + activityAdd + climateAdd;
+
+        // Set reasonable safety caps (min 1.5L, max 6L)
+        dailyGoal = Math.max(1.5, Math.min(6.0, calculated));
+        updateUI();
+    }
+
+    // Tap Interactions
+    tapZone.addEventListener('click', () => {
+        if (currentIntake < dailyGoal) {
+            currentIntake += activeIncrement; // 🌟 Modified: Adds the selected custom volume instead of 0.25
+            lastTapped = Date.now();
+            updateUI();
+
+            // Request notification permissions if not yet granted
+            if ("Notification" in window && Notification.permission === "default") {
+                Notification.requestPermission();
+            }
+
+            // 🎉 CELEBRATION TRIGGER 🎉
+            if (currentIntake >= dailyGoal) {
+                triggerCelebration();
+            }
+        }
+    });
+
+    // Confetti Animation Function
+    function triggerCelebration() {
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: {x: 0, y: 0.8}
+        });
+
+        confetti({
+            particleCount: 100,
+            spread: 70,
+            origin: {x: 1, y: 0.8}
+        });
+
+        let duration = 2 * 1000;
+        let end = Date.now() + duration;
+
+        (function frame() {
+            confetti({particleCount: 3, angle: 60, spread: 55, origin: {x: 0}});
+            confetti({particleCount: 3, angle: 120, spread: 55, origin: {x: 1}});
+
+            if (Date.now() < end) {
+                requestAnimationFrame(frame);
+            }
+        }());
+    }
+
+    resetBtn.addEventListener('click', () => {
+        if (confirm("Reset your metrics for today?")) {
+            currentIntake = 0;
+            lastTapped = Date.now();
             updateUI();
         }
-        
-        // Tap Interactions
-        tapZone.addEventListener('click', () => {
-            if (currentIntake < dailyGoal) {
-                currentIntake += INCREMENT;
-                lastTapped = Date.now();
-                updateUI();
+    });
 
-                // Request notification permissions if not yet granted
-                if ("Notification" in window && Notification.permission === "default") {
-                    Notification.requestPermission();
-                }
+    // Modal UX Actions
+    openSettings.addEventListener('click', () => {
+        document.getElementById('weightInput').value = localStorage.getItem('userWeight') || 70;
+        document.getElementById('activityInput').value = localStorage.getItem('userActivity') || 0;
+        document.getElementById('climateInput').value = localStorage.getItem('userClimate') || 0;
+        modalOverlay.classList.add('active');
+    });
 
-                // 🎉 CELEBRATION TRIGGER 🎉
-                // Check if the user reached their goal exactly on this tap
-                if (currentIntake >= dailyGoal) {
-                    triggerCelebration();
-                }
+    const hideModal = () => modalOverlay.classList.remove('active');
+    closeSettings.addEventListener('click', hideModal);
+
+    saveSettings.addEventListener('click', () => {
+        localStorage.setItem('userWeight', document.getElementById('weightInput').value);
+        localStorage.setItem('userActivity', document.getElementById('activityInput').value);
+        localStorage.setItem('userClimate', document.getElementById('climateInput').value);
+
+        calculateGoal();
+        hideModal();
+    });
+
+    // 2-Hour Inactivity Warning
+    setInterval(() => {
+        const twoHours = 2 * 60 * 60 * 1000;
+        if (Date.now() - lastTapped > twoHours && currentIntake < dailyGoal) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("Time to Hydrate! 💧", {
+                    body: "You haven't logged water in a couple of hours. Hit your target!",
+                });
             }
-        });
-
-        // Confetti Animation Function
-        function triggerCelebration() {
-            // Blast 1: Left side shooting up-right
-            confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { x: 0, y: 0.8 }
-            });
-
-            // Blast 2: Right side shooting up-left
-            confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { x: 1, y: 0.8 }
-            });
-
-            // Optional: Continuous celebratory bursts for 2 seconds
-            let duration = 2 * 1000;
-            let end = Date.now() + duration;
-
-            (function frame() {
-                confetti({
-                    particleCount: 3,
-                    angle: 60,
-                    spread: 55,
-                    origin: { x: 0 }
-                });
-                confetti({
-                    particleCount: 3,
-                    angle: 120,
-                    spread: 55,
-                    origin: { x: 1 }
-                });
-
-                if (Date.now() < end) {
-                    requestAnimationFrame(frame);
-                }
-            }());
         }
+    }, 15 * 60 * 1000);
 
-        resetBtn.addEventListener('click', () => {
-            if(confirm("Reset your metrics for today?")) {
-                currentIntake = 0;
-                lastTapped = Date.now();
-                updateUI();
-            }
-        });
-
-        // Modal UX Actions
-        openSettings.addEventListener('click', () => {
-            // Load saved settings if they exist
-            document.getElementById('weightInput').value = localStorage.getItem('userWeight') || 70;
-            document.getElementById('activityInput').value = localStorage.getItem('userActivity') || 0;
-            document.getElementById('climateInput').value = localStorage.getItem('userClimate') || 0;
-            modalOverlay.classList.add('active');
-        });
-
-        const hideModal = () => modalOverlay.classList.remove('active');
-        closeSettings.addEventListener('click', hideModal);
-
-        saveSettings.addEventListener('click', () => {
-            // Save inputs to keep form filled on next open
-            localStorage.setItem('userWeight', document.getElementById('weightInput').value);
-            localStorage.setItem('userActivity', document.getElementById('activityInput').value);
-            localStorage.setItem('userClimate', document.getElementById('climateInput').value);
-
-            calculateGoal();
-            hideModal();
-        });
-
-        // 2-Hour Inactivity Warning
-        setInterval(() => {
-            const twoHours = 2 * 60 * 60 * 1000;
-            if (Date.now() - lastTapped > twoHours && currentIntake < dailyGoal) {
-                if ("Notification" in window && Notification.permission === "granted") {
-                    new Notification("Time to Hydrate! 💧", {
-                        body: "You haven't logged water in a couple of hours. Hit your target!",
-                    });
-                }
-            }
-        }, 15 * 60 * 1000);
-
-        // Load correct calculations on first run
-        updateUI();
-    </script>
+    // Load correct calculations on first run
+    updateUI();
+</script>
 </body>
 </html>
