@@ -154,9 +154,9 @@
     <script>
         const CIRCUMFERENCE = 2 * Math.PI * 90;
         let activeIncrement = 0.25;
-        let currentIntake = parseFloat("{{ current_intake }}");
-        let dailyGoal = parseFloat("{{ profile.daily_goal }}");
-        let historyLogs = {{ history_logs|safe }};
+        let currentIntake = parseFloat("{{ current_intake }}") || 0.00;
+        let dailyGoal = parseFloat("{{ profile.daily_goal }}") || 2.50;
+        let historyLogs = JSON.parse('{{ history_logs|safe }}' || '[0, 0, 0, 0, 0, 0, 0]');
         let isVerifiedDrink = false;
         let maxTiltDetected = false;
 
