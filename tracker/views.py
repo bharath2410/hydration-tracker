@@ -286,11 +286,20 @@ def send_nudge_api(request, username):
     return JsonResponse({'status': 'invalid method'}, status=400)
 pass
 
+
 @csrf_exempt
 @login_required
 def dismiss_nudges_api(request):
-    """Marks all pending nudges for the current user as read"""
-    if request.method == 'POST':
-        Nudge.objects.filter(receiver=request.user, is_read=False).update(is_read=True)
-        return JsonResponse({'status': 'success'})
+    """Marks all pending nudges for the logged-in user as read"""
+    if request.method in ['POST', 'GET']:
+        if not request.user.is_authenticated:
+            return JsonResponse({'status': 'error', 'message': 'User session expired. Please log in again.'},
+                                status=401)
+
+        # Mark all pending nudges for this user as read
+        updated_count = Nudge.objects.filter(receiver=request.user, is_read=False).update(is_read=True)
+        return JsonResponse({
+            'status': 'success',
+            'message': f'Successfully dismissed {updated_count} nudges.'
+        })
     return JsonResponse({'status': 'invalid method'}, status=400)

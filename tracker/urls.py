@@ -12,6 +12,6 @@ urlpatterns = [
     path('friends/add/', views.add_friend, name='add_friend'),
     path('profile/', views.profile_view, name='profile'),
     path('api/sync-weather/', views.sync_weather_api, name='sync_weather_api'),
-    path('api/nudge/<str:username>/', views.send_nudge_api, name='send_nudge_api'),
     path('api/nudge/dismiss/', views.dismiss_nudges_api, name='dismiss_nudges_api'),
+    path('api/nudge/<str:username>/', views.send_nudge_api, name='send_nudge_api'),
 ]
