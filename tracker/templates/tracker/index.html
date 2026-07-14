@@ -351,7 +351,7 @@
             <div class="vol-pill" data-bev="alcohol" style="border-color: #ef4444;">🍺 Alcohol (-0.5x)</div>
         </div>
 
-    <div class="volume-selector">
+    <div class="volume-selector" id="volumeSelector" style="margin-bottom: 15px;">
         <div class="vol-pill active" data-vol="0.25">Glass (250ml)</div>
         <div class="vol-pill" data-vol="0.50">Bottle (500ml)</div>
         <div class="vol-pill" data-vol="0.75">Flask (750ml)</div>
@@ -498,9 +498,9 @@
     });
 
     // Pill controls selector setup
-    document.querySelectorAll('.vol-pill').forEach(pill => {
+    document.querySelectorAll('#volumeSelector .vol-pill').forEach(pill => {
         pill.addEventListener('click', () => {
-            document.querySelector('.vol-pill.active').classList.remove('active');
+            document.querySelector('#volumeSelector .vol-pill.active').classList.remove('active');
             pill.classList.add('active');
             activeIncrement = parseFloat(pill.dataset.vol);
         });
