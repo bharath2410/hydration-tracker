@@ -171,7 +171,7 @@ def profile_view(request):
             profile.activity_level = float(request.POST.get('activity', profile.activity_level))
             profile.climate_factor = float(request.POST.get('climate', profile.climate_factor))
             profile.custom_volume = float(request.POST.get('custom_ml', profile.custom_volume))
-
+            profile.theme_preference = request.POST.get('theme', profile.theme_preference)
             # Handle custom manual goal override
             override_val = request.POST.get('custom_goal_override')
             if override_val and str(override_val).strip():

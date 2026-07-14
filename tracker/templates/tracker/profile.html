@@ -7,6 +7,17 @@
     <link rel="manifest" href="/manifest.json?v=4" crossorigin="use-credentials">
     <style>
         body { background: #0f172a; color: white; font-family: sans-serif; margin: 0; padding: 20px; box-sizing: border-box; display: flex; justify-content: center; min-height: 100vh; }
+
+        body.light-theme {
+            --bg-color: #f1f5f9; /* Light slate gray */
+            --circle-bg: #e2e8f0; /* Lighter circle boundary */
+            --water-color: #0284c7; /* Richer blue for visibility */
+            --text-color: #0f172a; /* Dark slate text */
+            --modal-bg: #ffffff; /* Pure white cards */
+            --pill-inactive: #cbd5e1; /* Defined light pills */
+            --card-border: rgba(0, 0, 0, 0.08);
+            --state-color: #ea580c; /* Slightly darker streak orange */
+        }
         .container { width: 100%; max-width: 480px; }
         .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
         .back-btn { color: #38bdf8; text-decoration: none; font-weight: bold; font-size: 1.1rem; }
@@ -19,7 +30,7 @@
         button:active { opacity: 0.8; }
     </style>
 </head>
-<body>
+<body class="{% if profile.theme_preference == 'light' %}light-theme{% endif %}">
     <div class="container">
         <div class="header">
             <a href="/" class="back-btn">← Back</a>
@@ -38,7 +49,6 @@
                 </div>
                 <input type="file" id="picInput" accept="image/*" style="background: none; border: none; font-size: 0.85rem; color: #94a3b8; padding: 0; display: block; margin: 0 auto; width: 210px;">
             </div>
-
             <div class="row">
                 <div class="form-group">
                     <label>Age</label>
@@ -88,6 +98,14 @@
             </div>
 
             <div class="form-group">
+                <label>Theme Preference</label>
+                <select id="themeInput">
+                    <option value="dark" {% if profile.theme_preference == "dark" %}selected{% endif %}>Dark Mode</option>
+                    <option value="light" {% if profile.theme_preference == "light" %}selected{% endif %}>Light Mode</option>
+                </select>
+            </div>
+
+            <div class="form-group">
                 <label>Daily Goal Override (Liters - Optional)</label>
                 <input type="number" step="0.1" id="overrideInput" placeholder="Leave blank to auto-calculate" value="{% if profile.custom_goal_override %}{{ profile.custom_goal_override }}{% endif %}">
             </div>
@@ -114,6 +132,7 @@
             formData.append('activity', document.getElementById('activityInput').value);
             formData.append('climate', document.getElementById('climateInput').value);
             formData.append('custom_ml', document.getElementById('customVolInput').value);
+            formData.append('theme', document.getElementById('themeInput').value);
 
             const override_val = document.getElementById('overrideInput').value;
             formData.append('custom_goal_override', override_val);

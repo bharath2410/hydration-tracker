@@ -20,6 +20,17 @@
             --state-color: #f97316;
         }
 
+        body.light-theme {
+            --bg-color: #f1f5f9;         /* Light slate gray */
+            --circle-bg: #e2e8f0;       /* Lighter circle boundary */
+            --water-color: #0284c7;      /* Richer blue for visibility */
+            --text-color: #0f172a;       /* Dark slate text */
+            --modal-bg: #ffffff;         /* Pure white cards */
+            --pill-inactive: #cbd5e1;    /* Defined light pills */
+            --card-border: rgba(0, 0, 0, 0.08);
+            --state-color: #ea580c;      /* Slightly darker streak orange */
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -291,7 +302,7 @@
         }
     </style>
 </head>
-<body>
+<body class="{% if profile.theme_preference == 'light' %}light-theme{% endif %}">
 
 <div class="header">
     <div class="streak-badge" id="streakContainer">🔥 <span>{{ profile.streak }}</span> Day Streak</div>
