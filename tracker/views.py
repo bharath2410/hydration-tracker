@@ -5,7 +5,7 @@ from django.contrib.auth import login
 from django.http import JsonResponse
 from django.utils import timezone
 from django.contrib.auth.models import User
-from .models import UserProfile, HydrationLog, Friendship
+from .models import UserProfile, HydrationLog, Friendship, UserAchievement
 import json
 import urllib.request
 
@@ -132,6 +132,8 @@ def log_water_api(request):
             profile.last_streak_date = today
             profile.save()
 
+            # 🌟 NEW: Check achievements on successful hydration log
+            profile.check_and_award_achievements()
         return JsonResponse({
             'status': 'success',
             'current_intake': round(profile.current_intake, 2),
@@ -206,7 +208,13 @@ def profile_view(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
-    return render(request, 'tracker/profile.html', {'profile': profile})
+    # Fetch earned achievements to render on screen
+    earned = UserAchievement.objects.filter(user=request.user).select_related('achievement')
+    context = {
+        'profile': profile,
+        'earned_achievements': earned
+    }
+    return render(request, 'tracker/profile.html', context)
 
 
 @login_required
