@@ -473,12 +473,12 @@
         fetch("{% url 'log_water_api' %}", {
             method: "POST",
             headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
-            body: JSON.stringify({amount: activeIncrement,beverage_type: activeBeverage})
+            body: JSON.stringify({amount: activeIncrement, beverage_type: activeBeverage})
         })
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
-                    currentIntake += activeIncrement;
+                    currentIntake = data.current_intake;
                     isVerifiedDrink = false;
                     if (currentIntake >= dailyGoal) confetti();
                     updateUI();
