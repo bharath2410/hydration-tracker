@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hydrate Core Pro</title>
-    <link rel="manifest" href="/static/manifest.json" crossorigin="use-credentials">
+    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials">
     <meta name="theme-color" content="#0f172a" id="themeMetaColor">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -282,6 +282,15 @@
         });
 
         updateUI();
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registered successfully!', reg))
+                    .catch(err => console.error('Service Worker registration failed:', err));
+            });
+        }
     </script>
 </body>
 </html>
