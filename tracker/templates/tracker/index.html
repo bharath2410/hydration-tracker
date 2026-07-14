@@ -584,15 +584,33 @@
             });
     });
 
-    // ChartJS Analytics Rendering
+    // 🌟 CHARTJS ANALYTICS RENDERING CODE
     const ctx = document.getElementById('historyChart').getContext('2d');
+
+    // Dynamically calculate the last 7 calendar days ending on today
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dynamicLabels = [];
+
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        dynamicLabels.push(dayNames[d.getDay()]);
+    }
+
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            datasets: [{data: historyLogs, backgroundColor: '#38bdf8', borderRadius: 6}]
+            labels: dynamicLabels, // 🌟 Swapped hardcoded array for dynamic calendar timeline
+            datasets: [{
+                data: historyLogs,
+                backgroundColor: '#38bdf8',
+                borderRadius: 6
+            }]
         },
-        options: {responsive: true, plugins: {legend: {display: false}}}
+        options: {
+            responsive: true,
+            plugins: { legend: { display: false } }
+        }
     });
 
     updateUI();
