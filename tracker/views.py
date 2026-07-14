@@ -159,33 +159,31 @@ def add_friend(request):
 
 @login_required
 def profile_view(request):
-    profile = request.user.profile  # Matches your related_name='profile'
+    profile = request.user.profile
 
     if request.method == "POST":
         try:
-            data = json.loads(request.body)
+            # 🌟 UPDATED: Read from request.POST instead of json.loads
+            profile.weight = float(request.POST.get('weight', profile.weight))
+            profile.height = float(request.POST.get('height', profile.height))
+            profile.age = int(request.POST.get('age', profile.age))
+            profile.gender = request.POST.get('gender', profile.gender)
+            profile.activity_level = float(request.POST.get('activity', profile.activity_level))
+            profile.climate_factor = float(request.POST.get('climate', profile.climate_factor))
+            profile.custom_volume = float(request.POST.get('custom_ml', profile.custom_volume))
 
-            # Update core metrics
-            profile.weight = float(data.get('weight', profile.weight))
-            profile.height = float(data.get('height', profile.height))
-            profile.age = int(data.get('age', profile.age))
-            profile.gender = data.get('gender', profile.gender)
-            profile.activity_level = float(data.get('activity', profile.activity_level))
-            profile.climate_factor = float(data.get('climate', profile.climate_factor))
-
-            # 🌟 SAVED DIRECTLY IN LITERS AS DESIGNED:
-            profile.custom_volume = float(data.get('custom_ml', profile.custom_volume))
-
-            # Update custom manual goal override if input is filled, else store None
-            override_val = data.get('custom_goal_override')
+            # Handle custom manual goal override
+            override_val = request.POST.get('custom_goal_override')
             if override_val and str(override_val).strip():
                 profile.custom_goal_override = float(override_val)
             else:
                 profile.custom_goal_override = None
 
-            # Recalculate daily target goal based on updated metrics & save
-            profile.update_daily_goal()
+            # 🌟 NEW: Save uploaded image from request.FILES
+            if 'profile_picture' in request.FILES:
+                profile.profile_picture = request.FILES['profile_picture']
 
+            profile.update_daily_goal()
             return JsonResponse({'status': 'success'})
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)

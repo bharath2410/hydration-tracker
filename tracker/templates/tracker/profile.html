@@ -27,6 +27,18 @@
         </div>
 
         <div class="card">
+            <div class="form-group" style="text-align: center; margin-bottom: 25px;">
+                <label style="display: block; margin-bottom: 10px;">Profile Picture</label>
+                <div style="position: relative; display: inline-block; width: 90px; height: 90px; margin-bottom: 12px;">
+                    {% if profile.profile_picture %}
+                        <img src="{{ profile.profile_picture.url }}" id="avatarPreview" alt="Profile Picture" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 2.5px solid #38bdf8;">
+                    {% else %}
+                        <img src="https://img.icons8.com/color/96/user-male-circle--v1.png" id="avatarPreview" alt="Default Avatar" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                    {% endif %}
+                </div>
+                <input type="file" id="picInput" accept="image/*" style="background: none; border: none; font-size: 0.85rem; color: #94a3b8; padding: 0; display: block; margin: 0 auto; width: 210px;">
+            </div>
+
             <div class="row">
                 <div class="form-group">
                     <label>Age</label>
@@ -85,22 +97,36 @@
     </div>
 
     <script>
+        // Live image preview listener
+        document.getElementById('picInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                document.getElementById('avatarPreview').src = URL.createObjectURL(file);
+            }
+        });
+
         document.getElementById('saveProfile').addEventListener('click', () => {
-            const payload = {
-                age: document.getElementById('ageInput').value,
-                gender: document.getElementById('genderInput').value,
-                weight: document.getElementById('weightInput').value,
-                height: document.getElementById('heightInput').value,
-                activity: document.getElementById('activityInput').value,
-                climate: document.getElementById('climateInput').value,
-                custom_ml: document.getElementById('customVolInput').value,
-                custom_goal_override: document.getElementById('overrideInput').value || null
-            };
+            const formData = new FormData();
+            formData.append('age', document.getElementById('ageInput').value);
+            formData.append('gender', document.getElementById('genderInput').value);
+            formData.append('weight', document.getElementById('weightInput').value);
+            formData.append('height', document.getElementById('heightInput').value);
+            formData.append('activity', document.getElementById('activityInput').value);
+            formData.append('climate', document.getElementById('climateInput').value);
+            formData.append('custom_ml', document.getElementById('customVolInput').value);
+
+            const override_val = document.getElementById('overrideInput').value;
+            formData.append('custom_goal_override', override_val);
+
+            const fileInput = document.getElementById('picInput');
+            if (fileInput.files[0]) {
+                formData.append('profile_picture', fileInput.files[0]);
+            }
 
             fetch("{% url 'profile' %}", {
                 method: "POST",
-                headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" },
-                body: JSON.stringify(payload)
+                headers: { "X-CSRFToken": "{{ csrf_token }}" },
+                body: formData
             })
             .then(res => res.json())
             .then(data => {

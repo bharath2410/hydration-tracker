@@ -24,7 +24,7 @@ class UserProfile(models.Model):
 
     # 🌟 NEW: Optional Manual Goal Override
     custom_goal_override = models.FloatField(null=True, blank=True)  # in Liters
-
+    profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
     daily_goal = models.FloatField(default=2.50)
     streak = models.IntegerField(default=0)
     last_streak_date = models.DateField(null=True, blank=True)
