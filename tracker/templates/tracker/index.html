@@ -581,6 +581,7 @@
     }
 
     // --- Document Initialization ---
+    // 🌟 WITH THIS BULLETPROOF IOS-AWARE INITIALIZATION ENGINE:
     document.addEventListener("DOMContentLoaded", () => {
         // Init general UI structures
         updateUI();
@@ -590,11 +591,26 @@
         requestPushPermission();
         fetchAnalytics('weekly');
 
-        // Check device accelerometer permissions
-        if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission !== 'function') {
-            startMotionTracking();
-        } else if (localStorage.getItem('motion_verified') === 'true') {
-            startMotionTracking();
+        // Smart Motion Lifecycle Validator
+        if (typeof DeviceOrientationEvent !== 'undefined') {
+            if (typeof DeviceOrientationEvent.requestPermission === 'function') {
+                // iPhone/iOS Mode: Check if we need a fresh re-activation tap
+                if (localStorage.getItem('motion_verified') === 'true') {
+                    // Change banner text to act as a seamless "Wake Up" trigger instead of a scary lock
+                    if (sensorBanner) {
+                        sensorBanner.style.display = 'block';
+                        sensorBanner.innerHTML = "🔄 Tap to Wake Motion Sensors";
+                        sensorBanner.style.background = "rgba(234, 88, 12, 0.15)";
+                        sensorBanner.style.color = "var(--state-color)";
+                        sensorBanner.style.borderColor = "var(--state-color)";
+                    }
+                } else {
+                    if (sensorBanner) sensorBanner.style.display = 'block';
+                }
+            } else {
+                // Android/Desktop Mode: Autostart works perfectly without gesture traps
+                startMotionTracking();
+            }
         }
     });
 
@@ -604,11 +620,20 @@
     if (sensorBanner) {
         sensorBanner.addEventListener('click', () => {
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
-                DeviceOrientationEvent.requestPermission().then(state => {
+                DeviceOrientationEvent.requestPermission()
+                .then(state => {
                     if (state === 'granted') {
                         startMotionTracking();
+                        if (navigator.vibrate) navigator.vibrate([50, 50]); // Quick haptic response confirmation
+                    } else {
+                        alert("Sensors remained locked. Please grant permission to use the gesture logging feature!");
                     }
-                }).catch(err => console.error("Permission request intercepted:", err));
+                })
+                .catch(err => {
+                    console.error("Permission request intercepted:", err);
+                    // Fallback re-engagement attempt
+                    startMotionTracking();
+                });
             } else {
                 startMotionTracking();
             }
