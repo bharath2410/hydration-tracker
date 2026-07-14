@@ -16,8 +16,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path ,include
+from django.views.generic import TemplateView
 
 urlpatterns = [
+# Expose manifest and sw globally at the root layout to pass WebAPK crawler checks
+    path('manifest.json', TemplateView.as_view(template_name='static/manifest.json', content_type='application/json')),
+    path('sw.js', TemplateView.as_view(template_name='static/sw.js', content_type='application/javascript')),
+    
     path('admin/', admin.site.urls),
     path('', include('tracker.urls')),
 ]
