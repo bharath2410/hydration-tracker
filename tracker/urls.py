@@ -10,4 +10,5 @@ urlpatterns = [
     path('api/log/', views.log_water_api, name='log_water_api'),
     path('api/profile/', views.update_profile_api, name='update_profile_api'),
     path('friends/add/', views.add_friend, name='add_friend'),
+    path('profile/', views.profile_view, name='profile'),
 ]

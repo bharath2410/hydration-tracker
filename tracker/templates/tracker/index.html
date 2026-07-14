@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hydrate Core Pro</title>
-    <link rel="manifest" href="/manifest.json?v=3" crossorigin="use-credentials">
+    <link rel="manifest" href="/manifest.json?v=4" crossorigin="use-credentials">
     <meta name="theme-color" content="#0f172a" id="themeMetaColor">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -60,11 +60,24 @@
             border: 1px solid var(--state-color);
         }
 
+        .actions-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
         .logout-link {
             color: var(--text-color);
             font-size: 0.85rem;
             opacity: 0.6;
             text-decoration: none;
+        }
+
+        .profile-link {
+            color: #38bdf8;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.9rem;
         }
 
         .container {
@@ -276,73 +289,6 @@
             color: white;
             font-weight: bold;
         }
-
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0, 0, 0, 0.4);
-            display: flex;
-            justify-content: center;
-            align-items: flex-end;
-            z-index: 100;
-            visibility: hidden;
-            opacity: 0;
-            transition: all 0.3s ease;
-        }
-
-        .modal-overlay.active {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        .modal {
-            background: var(--modal-bg);
-            width: 100%;
-            max-width: 500px;
-            border-radius: 24px 24px 0 0;
-            padding: 24px;
-            transform: translateY(100%);
-            transition: transform 0.3s ease;
-        }
-
-        .modal-overlay.active .modal {
-            transform: translateY(0);
-        }
-
-        .form-group {
-            margin-bottom: 14px;
-        }
-
-        .form-group label {
-            display: block;
-            font-size: 0.85rem;
-            opacity: 0.7;
-            margin-bottom: 6px;
-        }
-
-        .form-group input, .form-group select {
-            width: 100%;
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid var(--card-border);
-            background: var(--bg-color);
-            color: var(--text-color);
-            font-size: 1rem;
-        }
-
-        .save-btn {
-            width: 100%;
-            padding: 14px;
-            background: var(--water-color);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-weight: bold;
-            cursor: pointer;
-        }
     </style>
 </head>
 <body>
@@ -350,6 +296,7 @@
 <div class="header">
     <div class="streak-badge" id="streakContainer">🔥 <span>{{ profile.streak }}</span> Day Streak</div>
     <div class="actions-right">
+        <a href="{% url 'profile' %}" class="profile-link">Profile</a>
         <form action="{% url 'logout' %}" method="POST" style="display: inline;">
             {% csrf_token %}
             <button type="submit" class="logout-link"
@@ -357,7 +304,6 @@
                 Logout
             </button>
         </form>
-        <button class="icon-btn" id="openSettings">⚙️</button>
     </div>
 </div>
 
@@ -384,8 +330,7 @@
         <div class="vol-pill active" data-vol="0.25">Glass (250ml)</div>
         <div class="vol-pill" data-vol="0.50">Bottle (500ml)</div>
         <div class="vol-pill" data-vol="0.75">Flask (750ml)</div>
-        <div class="vol-pill" id="customPill" data-vol="{{ profile.custom_volume }}">Custom ({{ profile.custom_volume|floatformat:2 }}L)
-        </div>
+        <div class="vol-pill" id="customPill" data-vol="{{ profile.custom_volume }}">Custom ({{ profile.custom_volume|floatformat:2 }}L)</div>
     </div>
 
     <div class="social-card">
@@ -409,39 +354,6 @@
     </div>
 </div>
 
-<div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
-        <div class="modal-header">
-            <h2>Tailored Profile Setup</h2>
-            <button class="icon-btn" id="closeSettings">✕</button>
-        </div>
-        <div class="form-group">
-            <label>Body Weight (kg)</label>
-            <input type="number" id="weightInput" value="{{ profile.weight }}">
-        </div>
-        <div class="form-group">
-            <label>Physical Energy Expended</label>
-            <select id="activityInput">
-                <option value="0" {% if profile.activity_level == 0 %}selected{% endif %}>Sedentary</option>
-                <option value="0.5" {% if profile.activity_level == 0.5 %}selected{% endif %}>Active</option>
-                <option value="1.0" {% if profile.activity_level == 1.0 %}selected{% endif %}>Athlete</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Local Ambient Climate</label>
-            <select id="climateInput">
-                <option value="0" {% if profile.climate_factor == 0 %}selected{% endif %}>Temperate</option>
-                <option value="0.5" {% if profile.climate_factor == 0.5 %}selected{% endif %}>Hot / Humid</option>
-            </select>
-        </div>
-        <div class="form-group">
-            <label>Custom Container Size (ml)</label>
-            <input type="number" id="customVolInput" value="400">
-        </div>
-        <button class="save-btn" id="saveSettings">Save Configuration</button>
-    </div>
-</div>
-
 <script>
     const CIRCUMFERENCE = 2 * Math.PI * 90;
     let activeIncrement = 0.25;
@@ -458,8 +370,7 @@
     const statusHint = document.getElementById('statusHint');
     const fluidWave = document.getElementById('fluidWave');
     const fluidWaveSec = document.getElementById('fluidWaveSec');
-    const modalOverlay = document.getElementById('modalOverlay');
-    const sensorBanner = document.getElementById('sensorBanner'); // Reference to your banner
+    const sensorBanner = document.getElementById('sensorBanner');
 
     function updateUI() {
         currentText.textContent = currentIntake.toFixed(2);
@@ -493,28 +404,26 @@
         }
     }
 
-    // 🌟 CORE UPGRADE: Helper function to bind tracking listener and clear banner
+    // Bind tracking listener and clear banner
     function startMotionTracking() {
         window.addEventListener('deviceorientation', handleMotion);
-        localStorage.setItem('motion_verified', 'true'); // Persist permission status
+        localStorage.setItem('motion_verified', 'true');
         if (sensorBanner) {
             sensorBanner.style.display = 'none';
         }
     }
 
-    // 🚀 AUTOMATED LOADING LOGIC FOR ANDROID & CACHED IOS DEVICES
+    // Automated initialization on load
     document.addEventListener("DOMContentLoaded", () => {
-        // 1. If Android Chrome (Permission function does not exist), auto-activate immediately
         if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission !== 'function') {
             startMotionTracking();
         }
-        // 2. If iPhone Safari and they already granted permission previously, warm up tracking
         else if (localStorage.getItem('motion_verified') === 'true') {
             startMotionTracking();
         }
     });
 
-    // Fallback click listener for manual first-time setup actions (Mainly iOS)
+    // Fallback click listener
     if (sensorBanner) {
         sensorBanner.addEventListener('click', () => {
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -529,7 +438,7 @@
         });
     }
 
-    // AJAX POST Logging Request directly back to backend DB views
+    // AJAX POST Logging Request
     tapZone.addEventListener('click', () => {
         if (!isVerifiedDrink) {
             alert("Anti-Cheat Active: Please perform an actual drink gesture before logging!");
@@ -561,33 +470,9 @@
         });
     });
 
-    // Modal triggers
-    document.getElementById('openSettings').addEventListener('click', () => modalOverlay.classList.add('active'));
-    document.getElementById('closeSettings').addEventListener('click', () => modalOverlay.classList.remove('active'));
-
-    document.getElementById('saveSettings').addEventListener('click', () => {
-        const payload = {
-            weight: document.getElementById('weightInput').value,
-            activity: document.getElementById('activityInput').value,
-            climate: document.getElementById('climateInput').value,
-            custom_ml: document.getElementById('customVolInput').value
-        };
-
-        fetch("{% url 'update_profile_api' %}", {
-            method: "POST",
-            headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
-            body: JSON.stringify(payload)
-        })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') location.reload();
-            });
-    });
-
-    // 🌟 CHARTJS ANALYTICS RENDERING CODE
+    // ChartJS Analytics Rendering
     const ctx = document.getElementById('historyChart').getContext('2d');
 
-    // Dynamically calculate the last 7 calendar days ending on today
     const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const dynamicLabels = [];
 
@@ -600,7 +485,7 @@
     new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: dynamicLabels, // 🌟 Swapped hardcoded array for dynamic calendar timeline
+            labels: dynamicLabels,
             datasets: [{
                 data: historyLogs,
                 backgroundColor: '#38bdf8',

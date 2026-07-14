@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile - Hydrate Daily</title>
+    <link rel="manifest" href="/manifest.json?v=4" crossorigin="use-credentials">
+    <style>
+        body { background: #0f172a; color: white; font-family: sans-serif; margin: 0; padding: 20px; box-sizing: border-box; display: flex; justify-content: center; min-height: 100vh; }
+        .container { width: 100%; max-width: 480px; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+        .back-btn { color: #38bdf8; text-decoration: none; font-weight: bold; font-size: 1.1rem; }
+        .card { background: #1e293b; padding: 25px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); box-sizing: border-box; }
+        .form-group { margin-bottom: 20px; text-align: left; }
+        label { display: block; font-size: 0.9rem; color: #94a3b8; margin-bottom: 8px; }
+        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: #0f172a; color: white; box-sizing: border-box; font-size: 1rem; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        button { width: 100%; padding: 14px; background: #38bdf8; border: none; border-radius: 8px; color: #0f172a; font-weight: bold; font-size: 1rem; cursor: pointer; margin-top: 10px; }
+        button:active { opacity: 0.8; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/" class="back-btn">← Back</a>
+            <h2 style="margin: 0;">Profile Settings</h2>
+        </div>
+
+        <div class="card">
+            <div class="row">
+                <div class="form-group">
+                    <label>Age</label>
+                    <input type="number" id="ageInput" value="{{ profile.age }}">
+                </div>
+                <div class="form-group">
+                    <label>Gender</label>
+                    <select id="genderInput">
+                        <option value="M" {% if profile.gender == "M" %}selected{% endif %}>Male</option>
+                        <option value="F" {% if profile.gender == "F" %}selected{% endif %}>Female</option>
+                        <option value="O" {% if profile.gender == "O" %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="form-group">
+                    <label>Weight (kg)</label>
+                    <input type="number" step="0.1" id="weightInput" value="{{ profile.weight }}">
+                </div>
+                <div class="form-group">
+                    <label>Height (cm)</label>
+                    <input type="number" step="0.1" id="heightInput" value="{{ profile.height }}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Physical Activity level</label>
+                <select id="activityInput">
+                    <option value="0.0" {% if profile.activity_level == 0.0 %}selected{% endif %}>Sedentary</option>
+                    <option value="0.5" {% if profile.activity_level == 0.5 %}selected{% endif %}>Active</option>
+                    <option value="1.0" {% if profile.activity_level == 1.0 %}selected{% endif %}>Athlete</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Local Ambient Climate</label>
+                <select id="climateInput">
+                    <option value="0.0" {% if profile.climate_factor == 0.0 %}selected{% endif %}>Temperate</option>
+                    <option value="0.5" {% if profile.climate_factor == 0.5 %}selected{% endif %}>Hot / Humid</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Custom Option Volume (Liters)</label>
+                <input type="number" step="0.05" id="customVolInput" value="{{ profile.custom_volume }}">
+            </div>
+
+            <div class="form-group">
+                <label>Daily Goal Override (Liters - Optional)</label>
+                <input type="number" step="0.1" id="overrideInput" placeholder="Leave blank to auto-calculate" value="{% if profile.custom_goal_override %}{{ profile.custom_goal_override }}{% endif %}">
+            </div>
+
+            <button id="saveProfile">Save Profile Changes</button>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('saveProfile').addEventListener('click', () => {
+            const payload = {
+                age: document.getElementById('ageInput').value,
+                gender: document.getElementById('genderInput').value,
+                weight: document.getElementById('weightInput').value,
+                height: document.getElementById('heightInput').value,
+                activity: document.getElementById('activityInput').value,
+                climate: document.getElementById('climateInput').value,
+                custom_ml: document.getElementById('customVolInput').value,
+                custom_goal_override: document.getElementById('overrideInput').value || null
+            };
+
+            fetch("{% url 'profile' %}", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}" },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    window.location.href = '/';
+                } else {
+                    alert('Error saving profile modifications.');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

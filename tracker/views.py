@@ -124,6 +124,7 @@ def log_water_api(request):
 
 @login_required
 def update_profile_api(request):
+    """Fallback REST API for quick adjustments"""
     if request.method == 'POST':
         data = json.loads(request.body)
         profile = request.user.profile
@@ -131,8 +132,11 @@ def update_profile_api(request):
         profile.activity_level = float(data.get('activity', profile.activity_level))
         profile.climate_factor = float(data.get('climate', profile.climate_factor))
 
-        custom_ml = float(data.get('custom_ml', 400))
-        profile.custom_volume = custom_ml / 1000.0
+        # 🌟 UPDATED: Matches the clean direct Liters format used elsewhere
+        custom_vol = float(data.get('custom_ml', 0.40))
+        if custom_vol > 10:  # Simple safety fallback: if they send 400 instead of 0.40, convert it
+            custom_vol = custom_vol / 1000.0
+        profile.custom_volume = custom_vol
 
         profile.update_daily_goal()
         return JsonResponse({'status': 'success', 'daily_goal': profile.daily_goal})
@@ -151,3 +155,39 @@ def add_friend(request):
         except User.DoesNotExist:
             pass
     return redirect('index')
+
+
+@login_required
+def profile_view(request):
+    profile = request.user.profile  # Matches your related_name='profile'
+
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+
+            # Update core metrics
+            profile.weight = float(data.get('weight', profile.weight))
+            profile.height = float(data.get('height', profile.height))
+            profile.age = int(data.get('age', profile.age))
+            profile.gender = data.get('gender', profile.gender)
+            profile.activity_level = float(data.get('activity', profile.activity_level))
+            profile.climate_factor = float(data.get('climate', profile.climate_factor))
+
+            # 🌟 SAVED DIRECTLY IN LITERS AS DESIGNED:
+            profile.custom_volume = float(data.get('custom_ml', profile.custom_volume))
+
+            # Update custom manual goal override if input is filled, else store None
+            override_val = data.get('custom_goal_override')
+            if override_val and str(override_val).strip():
+                profile.custom_goal_override = float(override_val)
+            else:
+                profile.custom_goal_override = None
+
+            # Recalculate daily target goal based on updated metrics & save
+            profile.update_daily_goal()
+
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    return render(request, 'tracker/profile.html', {'profile': profile})
