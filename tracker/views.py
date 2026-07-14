@@ -379,3 +379,25 @@ def analytics_data_api(request, range_type):
     data = list(date_map.values())
 
     return JsonResponse({'labels': labels, 'data': data})
+
+
+@login_required
+def check_new_nudges_api(request):
+    """API for the Service Worker to fetch unread nudges and trigger background notifications"""
+    if request.method in ['GET', 'POST']:
+        # Fetch unread nudges
+        unread_nudges = Nudge.objects.filter(receiver=request.user, is_read=False).select_related('sender')
+
+        nudge_list = []
+        for nudge in unread_nudges:
+            nudge_list.append({
+                'id': nudge.id,
+                'sender': nudge.sender.username,
+            })
+
+        return JsonResponse({
+            'status': 'success',
+            'unread_count': len(nudge_list),
+            'nudges': nudge_list
+        })
+    return JsonResponse({'status': 'invalid method'}, status=400)
