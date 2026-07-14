@@ -92,6 +92,24 @@ class UserProfile(models.Model):
             if should_award:
                 UserAchievement.objects.get_or_create(user=self.user, achievement=ach)
 
+    @property
+    def avatar_url(self):
+        """Returns the uploaded picture if it exists, otherwise a smart, gender-based fallback avatar."""
+        if self.profile_picture and hasattr(self.profile_picture, 'url'):
+            try:
+                # Test if the physical file actually exists on the ephemeral disk
+                if self.profile_picture.storage.exists(self.profile_picture.name):
+                    return self.profile_picture.url
+            except Exception:
+                pass
+
+        # Fallback gender-specific avatars (no-broken-image-icons!)
+        if self.gender == 'F':
+            return "https://img.icons8.com/color/96/user-female-circle--v1.png"
+        elif self.gender == 'O':
+            return "https://img.icons8.com/color/96/user-gender-neutral-backside.png"
+        else:
+            return "https://img.icons8.com/color/96/user-male-circle--v1.png"
 
 class HydrationLog(models.Model):
     BEVERAGE_CHOICES = [
