@@ -320,7 +320,10 @@
         </form>
     </div>
 </div>
-
+<!-- 🌟 NEW: Notification Diagnostic Badge (Only displays if permissions aren't granted) -->
+    <button id="notiPromptBtn" style="display: none; width: 100%; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; padding: 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; cursor: pointer;">
+        🔔 Enable App Notifications & Test
+    </button>
 <div class="container">
     {% if unread_nudges %}
     <div id="nudgeBanner" style="width: 85vw; max-width: 450px; background: rgba(249, 115, 22, 0.15); border: 1px solid var(--state-color); border-radius: 12px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-color);">
@@ -453,13 +456,57 @@
         }
     }
 
-    // --- System Notification Prompt ---
-    function requestPushPermission() {
-        if ('Notification' in window && Notification.permission === 'default') {
+    // --- 🌟 Upgraded Notification Engine ---
+    const notiPromptBtn = document.getElementById('notiPromptBtn');
+
+    function checkNotificationPermission() {
+        if (!('Notification' in window)) {
+            console.warn("This browser does not support notifications.");
+            return;
+        }
+
+        if (Notification.permission === 'granted') {
+            if (notiPromptBtn) notiPromptBtn.style.display = 'none'; // Already good to go!
+        } else {
+            if (notiPromptBtn) {
+                notiPromptBtn.style.display = 'block'; // Show the button so iOS allows the permission prompt tap
+            }
+        }
+    }
+
+    // Direct iOS-Compliant User-Gesture Prompt Handler
+    if (notiPromptBtn) {
+        notiPromptBtn.addEventListener('click', () => {
             Notification.requestPermission().then(permission => {
                 if (permission === 'granted') {
-                    console.log("Push notification permissions enabled.");
+                    console.log("Notification permission granted!");
+                    notiPromptBtn.style.display = 'none';
+
+                    // Trigger an instant local diagnostic test notification to verify the pipeline
+                    triggerInstantTestNotification();
+                } else {
+                    alert("Notification permissions were denied. Please reset them in your system settings.");
                 }
+            });
+        });
+    }
+
+    function triggerInstantTestNotification() {
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.ready.then(registration => {
+                registration.showNotification('Hydration Setup Complete! ✅', {
+                    body: 'Your phone is now successfully linked to receive hydration warnings and friend nudges!',
+                    icon: '/static/icon-192.png',
+                    badge: '/static/icon-192.png',
+                    vibrate: [100, 50, 100],
+                    requireInteraction: false
+                });
+            });
+        } else {
+            // Fallback to standard non-ServiceWorker notification if SW is still warming up
+            new Notification('Hydration Setup Complete! ✅', {
+                body: 'Your phone is now successfully linked to receive hydration reminders!',
+                icon: '/static/icon-192.png'
             });
         }
     }
@@ -588,7 +635,7 @@
 
         // Run background integrations
         syncLocalWeather();
-        requestPushPermission();
+        checkNotificationPermission();
         fetchAnalytics('weekly');
 
         // Smart Motion Lifecycle Validator
