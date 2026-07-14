@@ -370,7 +370,7 @@
         <h3>FRIENDS LEADERBOARD standings</h3>
         {% for entry in leaderboard %}
         <div class="leaderboard-row">
-            <span>{{ forloop.counter }}. **{{ entry.username }}** (🔥{{ entry.streak }}d)</span>
+            <span>{{ forloop.counter }}. <strong style="color: var(--text-color);">{{ entry.username }}</strong> (🔥{{ entry.streak }}d)</span>
             <div style="display: flex; align-items: center; gap: 10px;">
                 <span>{{ entry.intake }}L / {{ entry.goal }}L</span>
                 {% if entry.username != "You" %}
@@ -397,9 +397,9 @@
                 </div>
             </div>
 
-            <div style="position: relative; height: 220px; width: 100%;">
-                <canvas id="analyticsChart"></canvas>
-            </div>
+                <div style="position: relative; height: 250px; min-height: 250px; width: 100%; margin-top: 15px;">
+                    <canvas id="analyticsChart"></canvas>
+                </div>
         </div>
 </div>
 
