@@ -52,3 +52,47 @@ self.addEventListener('fetch', (event) => {
         );
     }
 });
+
+// 🌟 SW PUSH REMINDER LISTENER:
+self.addEventListener('push', function(event) {
+    let data = { title: 'Hydrate Daily', body: 'Time to drink some water!' };
+
+    if (event.data) {
+        try {
+            data = event.data.json();
+        } catch (e) {
+            data.body = event.data.text();
+        }
+    }
+
+    const options = {
+        body: data.body,
+        icon: '/static/icon-192.png', // Or wherever your PWA main icon path is
+        badge: '/static/icon-192.png',
+        vibrate: [100, 50, 100],
+        data: {
+            dateOfArrival: Date.now(),
+            primaryKey: '1'
+        },
+        actions: [
+            { action: 'drink', title: 'I had a drink!' },
+            { action: 'close', title: 'Dismiss' }
+        ]
+    };
+
+    event.waitUntil(
+        self.registration.showNotification(data.title, options)
+    );
+});
+
+// Handle clicking on the notification actions
+self.addEventListener('notificationclick', function(event) {
+    event.notification.close();
+
+    if (event.action === 'drink') {
+        // Automatically open the app to log the drink!
+        event.waitUntil(
+            clients.openWindow('/')
+        );
+    }
+});

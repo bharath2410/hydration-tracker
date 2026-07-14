@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+{% load static %}
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -482,6 +483,9 @@
                     isVerifiedDrink = false;
                     if (currentIntake >= dailyGoal) confetti();
                     updateUI();
+
+                    // 🌟 RESET REMINDER TIMER ON EACH LOGGED DRINK:
+                    scheduleLocalFallbackReminder();
                 }
             });
     });
@@ -583,6 +587,53 @@
                 .catch(err => console.error('Service Worker registration failed:', err));
         });
     }
+
+    // 🌟 Notification Permission & Automation Engine
+    function setupSmartReminders() {
+        if ('Notification' in window) {
+            // Check if permission is already granted or ask for it
+            if (Notification.permission === 'default') {
+                Notification.requestPermission().then(permission => {
+                    if (permission === 'granted') {
+                        console.log("Notification access granted! Reminders active.");
+                        scheduleLocalFallbackReminder();
+                    }
+                });
+            } else if (Notification.permission === 'granted') {
+                scheduleLocalFallbackReminder();
+            }
+        }
+    }
+
+    // A helper that schedules a local reminder if they don't log water
+    let reminderTimer;
+    function scheduleLocalFallbackReminder() {
+        // Clear any existing active timers
+        if (reminderTimer) clearTimeout(reminderTimer);
+
+        // Schedule a warning notification after 30 minutes of inactivity (10800000 ms)
+        // For debugging/testing, you can set this to 10 seconds (10000 ms)!
+        const INACTIVITY_LIMIT = 1800000;
+
+        reminderTimer = setTimeout(() => {
+            if (Notification.permission === 'granted' && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.showNotification('Dehydration Warning! 💧', {
+                        body: 'You haven\'t logged a drink in over 30 minutes! Take a sip to protect your streak.',
+                        icon: "{% static 'icon-192.png' %}",
+                        badge: "{% static 'icon-192.png' %}",
+                        vibrate: [200, 100, 200]
+                    });
+                });
+            }
+        }, INACTIVITY_LIMIT);
+    }
+
+    // Call permission requests right on DOM Load
+    document.addEventListener("DOMContentLoaded", () => {
+        syncLocalWeather();
+        setupSmartReminders(); // 🌟 Warm up push reminder settings
+    });
 </script>
 </body>
 </html>
