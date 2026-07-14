@@ -611,19 +611,23 @@
     });
 
     // 🌟 Handle dismissing the active nudge banner
-    const dismissBtn = document.getElementById('dismissNudges');
+const dismissBtn = document.getElementById('dismissNudges');
     if (dismissBtn) {
         dismissBtn.addEventListener('click', () => {
-            fetch("{% url 'dismiss_nudges_api' %}", {
+            fetch('/api/nudge/dismiss/', {  // 🌟 Direct absolute path with trailing slash
                 method: "POST",
                 headers: { "X-CSRFToken": "{{ csrf_token }}" }
             })
             .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
-                    document.getElementById('nudgeBanner').style.display = 'none';
+                    const banner = document.getElementById('nudgeBanner');
+                    if (banner) banner.style.display = 'none';
+                } else {
+                    console.error("Failed to dismiss nudges on server:", data.message);
                 }
-            });
+            })
+            .catch(err => console.error("Network error dismissing nudges:", err));
         });
     }
 </script>

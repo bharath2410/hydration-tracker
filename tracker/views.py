@@ -5,6 +5,8 @@ from django.contrib.auth import login
 from django.http import JsonResponse
 from django.utils import timezone
 from django.contrib.auth.models import User
+from django.views.decorators.csrf import csrf_exempt
+
 from .models import UserProfile, HydrationLog, Friendship, UserAchievement, Nudge
 import json
 import urllib.request
@@ -264,7 +266,7 @@ def sync_weather_api(request):
 
     return JsonResponse({'status': 'invalid method'}, status=400)
 
-
+@csrf_exempt
 @login_required
 def send_nudge_api(request, username):
     """Creates a new unread nudge for a friend"""
@@ -282,8 +284,9 @@ def send_nudge_api(request, username):
         except User.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'User not found'}, status=404)
     return JsonResponse({'status': 'invalid method'}, status=400)
+pass
 
-
+@csrf_exempt
 @login_required
 def dismiss_nudges_api(request):
     """Marks all pending nudges for the current user as read"""
