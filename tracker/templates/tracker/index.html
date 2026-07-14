@@ -7,6 +7,7 @@
     <title>Hydrate Core Pro</title>
     <link rel="manifest" href="/manifest.json?v=4" crossorigin="use-credentials">
     <meta name="theme-color" content="#0f172a" id="themeMetaColor">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
@@ -385,10 +386,21 @@
         </form>
     </div>
 
-    <div class="chart-card">
-        <h3>7-DAY PERFORMANCE LOG</h3>
-        <canvas id="historyChart" height="140"></canvas>
-    </div>
+        <div class="card" style="margin-top: 25px; padding: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                <h3 style="margin: 0; font-size: 1rem; letter-spacing: 0.5px; opacity: 0.8; text-transform: uppercase;">Hydration Performance</h3>
+
+                <div style="display: flex; gap: 5px; background: rgba(255,255,255,0.05); padding: 3px; border-radius: 8px;">
+                    <button class="range-tab active" data-range="weekly" style="background: var(--bg-color); border: none; color: var(--text-color); padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">7D</button>
+                    <button class="range-tab" data-range="monthly" style="background: none; border: none; color: #94a3b8; padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">30D</button>
+                    <button class="range-tab" data-range="yearly" style="background: none; border: none; color: #94a3b8; padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">1Y</button>
+                </div>
+            </div>
+
+            <div style="position: relative; height: 220px; width: 100%;">
+                <canvas id="analyticsChart"></canvas>
+            </div>
+        </div>
 </div>
 
 <script>
@@ -630,6 +642,95 @@ const dismissBtn = document.getElementById('dismissNudges');
             .catch(err => console.error("Network error dismissing nudges:", err));
         });
     }
+
+    // 🌟 Interactive Performance Analytics Controller
+    let hydrationChartInstance = null;
+
+    function renderChart(labels, dataValues) {
+        const ctx = document.getElementById('analyticsChart').getContext('2d');
+
+        // Destruct existing chart instance before drawing a new one to prevent canvas overlap glitches
+        if (hydrationChartInstance) {
+            hydrationChartInstance.destroy();
+        }
+
+        // Detect active theme properties dynamically
+        const isLightTheme = document.body.classList.contains('light-theme');
+        const gridColor = isLightTheme ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)';
+        const tickColor = isLightTheme ? '#0f172a' : '#94a3b8';
+
+        hydrationChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Litres Logged',
+                    data: dataValues,
+                    backgroundColor: '#38bdf8',
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    maxBarThickness: 32,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1e293b',
+                        titleColor: '#38bdf8',
+                        bodyColor: '#ffffff',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        displayColors: false
+                    }
+                },
+                scales: {
+                    y: {
+                        grid: { color: gridColor },
+                        ticks: { color: tickColor, font: { size: 10 } },
+                        beginAtZero: true
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: tickColor, font: { size: 10 } }
+                    }
+                }
+            }
+        });
+    }
+
+    function fetchAnalytics(rangeType) {
+        fetch(`/api/analytics/${rangeType}/`)
+            .then(res => res.json())
+            .then(data => {
+                renderChart(data.labels, data.data);
+            })
+            .catch(err => console.error("Could not fetch chart metrics:", err));
+    }
+
+    // Toggle range tabs listeners
+    document.querySelectorAll('.range-tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+            // Manage UI states
+            document.querySelector('.range-tab.active').style.background = 'none';
+            document.querySelector('.range-tab.active').style.color = '#94a3b8';
+            document.querySelector('.range-tab.active').classList.remove('active');
+
+            tab.classList.add('active');
+            tab.style.background = 'var(--bg-color)';
+            tab.style.color = 'var(--text-color)';
+
+            // Fetch and render metrics
+            fetchAnalytics(tab.dataset.range);
+        });
+    });
+
+    // Initialize chart with default Weekly layout on page load
+    document.addEventListener("DOMContentLoaded", () => {
+        fetchAnalytics('weekly');
+    });
 </script>
 <script>
     if ('serviceWorker' in navigator) {

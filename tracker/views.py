@@ -1,3 +1,5 @@
+from django.db.models import Sum
+from django.db.models.functions import TruncMonth, TruncDate
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import UserCreationForm
@@ -6,6 +8,7 @@ from django.http import JsonResponse
 from django.utils import timezone
 from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
+from datetime import timedelta
 
 from .models import UserProfile, HydrationLog, Friendship, UserAchievement, Nudge
 import json
@@ -303,3 +306,76 @@ def dismiss_nudges_api(request):
             'message': f'Successfully dismissed {updated_count} nudges.'
         })
     return JsonResponse({'status': 'invalid method'}, status=400)
+
+
+@login_required
+def analytics_data_api(request, range_type):
+    """Returns aggregated hydration data for charts based on range selection"""
+    today = timezone.localdate()
+
+    if range_type == 'weekly':
+        # Last 7 days
+        start_date = today - timedelta(days=6)
+        logs = HydrationLog.objects.filter(
+            user=request.user,
+            timestamp__date__range=[start_date, today]
+        ).annotate(date=TruncDate('timestamp')) \
+            .values('date') \
+            .annotate(total=Sum('amount')) \
+            .order_by('date')  # 🌟 Clean, correct Django sorting
+
+        # Ensure every day in the range has a data point (fill missing with 0)
+        date_map = {start_date + timedelta(days=i): 0.0 for i in range(7)}
+
+    elif range_type == 'monthly':
+        # Last 30 days
+        start_date = today - timedelta(days=29)
+        logs = HydrationLog.objects.filter(
+            user=request.user,
+            timestamp__date__range=[start_date, today]
+        ).annotate(date=TruncDate('timestamp')) \
+            .values('date') \
+            .annotate(total=Sum('amount')) \
+            .order_by('date')
+
+        date_map = {start_date + timedelta(days=i): 0.0 for i in range(30)}
+
+    elif range_type == 'yearly':
+        # Last 12 months
+        start_date = today - timedelta(days=365)
+        logs = HydrationLog.objects.filter(
+            user=request.user,
+            timestamp__date__range=[start_date, today]
+        ).annotate(month=TruncMonth('timestamp')) \
+            .values('month') \
+            .annotate(total=Sum('amount')) \
+            .order_by('month')
+
+        labels = []
+        data = []
+        month_map = {}
+        for log in logs:
+            month_str = log['month'].strftime('%b %Y')
+            month_map[month_str] = round(log['total'], 2)
+
+        for i in range(12):
+            m_date = today - timedelta(days=30 * (11 - i))
+            m_str = m_date.strftime('%b %Y')
+            labels.append(m_str)
+            data.append(month_map.get(m_str, 0.0))
+
+        return JsonResponse({'labels': labels, 'data': data})
+
+    else:
+        return JsonResponse({'status': 'error', 'message': 'Invalid range'}, status=400)
+
+    # Populate weekly/monthly data maps
+    for log in logs:
+        log_date = log['date']
+        if log_date in date_map:
+            date_map[log_date] = round(log['total'], 2)
+
+    labels = [date.strftime('%a (%d)' if range_type == 'weekly' else '%d %b') for date in date_map.keys()]
+    data = list(date_map.values())
+
+    return JsonResponse({'labels': labels, 'data': data})
