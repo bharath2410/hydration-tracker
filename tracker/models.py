@@ -158,3 +158,12 @@ class UserAchievement(models.Model):
 
     class Meta:
         unique_together = ('user', 'achievement')
+
+class Nudge(models.Model):
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_nudges')
+    receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_nudges')
+    timestamp = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.sender.username} -> {self.receiver.username}"

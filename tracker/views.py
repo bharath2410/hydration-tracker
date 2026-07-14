@@ -5,7 +5,7 @@ from django.contrib.auth import login
 from django.http import JsonResponse
 from django.utils import timezone
 from django.contrib.auth.models import User
-from .models import UserProfile, HydrationLog, Friendship, UserAchievement
+from .models import UserProfile, HydrationLog, Friendship, UserAchievement, Nudge
 import json
 import urllib.request
 
@@ -86,11 +86,14 @@ def index(request):
         day_logs = HydrationLog.objects.filter(user=request.user, timestamp__date=day)
         history_logs.append(round(max(0.0, sum(log.amount for log in day_logs)), 2))
 
+    unread_nudges = Nudge.objects.filter(receiver=request.user, is_read=False).select_related('sender')
+
     context = {
         'profile': profile,
         'current_intake': round(profile.current_intake, 2),
         'leaderboard': leaderboard,
         'history_logs': json.dumps(history_logs),
+        'unread_nudges': unread_nudges,  # 🌟 PASS UNREAD NUDGES TO HTML
     }
     return render(request, 'tracker/index.html', context)
 
@@ -259,4 +262,32 @@ def sync_weather_api(request):
         except Exception as e:
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
+    return JsonResponse({'status': 'invalid method'}, status=400)
+
+
+@login_required
+def send_nudge_api(request, username):
+    """Creates a new unread nudge for a friend"""
+    if request.method == 'POST':
+        try:
+            receiver = User.objects.get(username=username)
+            # Ensure they are friends before allowing a nudge
+            is_friend = Friendship.objects.filter(from_user=request.user, to_user=receiver).exists()
+            if not is_friend:
+                return JsonResponse({'status': 'error', 'message': 'Not friends'}, status=400)
+
+            # Create the nudge record
+            Nudge.objects.create(sender=request.user, receiver=receiver)
+            return JsonResponse({'status': 'success'})
+        except User.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'User not found'}, status=404)
+    return JsonResponse({'status': 'invalid method'}, status=400)
+
+
+@login_required
+def dismiss_nudges_api(request):
+    """Marks all pending nudges for the current user as read"""
+    if request.method == 'POST':
+        Nudge.objects.filter(receiver=request.user, is_read=False).update(is_read=True)
+        return JsonResponse({'status': 'success'})
     return JsonResponse({'status': 'invalid method'}, status=400)
