@@ -18,6 +18,7 @@ from django.contrib import admin
 from django.urls import path ,include
 from django.views.generic import RedirectView
 from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
 # Route root-level PWA requests directly to their true physical static locations
@@ -27,3 +28,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('tracker.urls')),
 ]
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+else:
+    # This ensures your uploaded photos serve cleanly in production on Railway!
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
