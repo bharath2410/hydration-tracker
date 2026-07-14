@@ -96,16 +96,33 @@ def index(request):
 
 @login_required
 def log_water_api(request):
-    """Standalone REST Endpoint supporting Smart Watch/API syncing (Feature 2)"""
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             amount = float(data.get('amount', 0.25))
+            bev_type = data.get('beverage_type', 'water')
         except:
             amount = 0.25
+            bev_type = 'water'
+
+        # 🌟 Define hydration multipliers
+        modifiers = {
+            'water': 1.0,
+            'sports': 1.2,
+            'caffeine': 0.8,
+            'alcohol': -0.5
+        }
+        mod = modifiers.get(bev_type, 1.0)
 
         profile = request.user.profile
-        HydrationLog.objects.create(user=request.user, amount=amount)
+
+        # Create log with type and modifier parameters
+        HydrationLog.objects.create(
+            user=request.user,
+            amount=amount,
+            beverage_type=bev_type,
+            modifier=mod
+        )
 
         # Check streak achievements on logging
         today = timezone.localdate()

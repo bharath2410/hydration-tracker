@@ -343,6 +343,14 @@
         </div>
     </div>
 
+    <h3 style="font-size: 0.85rem; opacity: 0.6; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; text-align: center; width: 100%;">Beverage Type</h3>
+        <div class="volume-selector" id="bevSelector" style="margin-bottom: 15px;">
+            <div class="vol-pill active" data-bev="water" style="border-color: #38bdf8;">💧 Water (1x)</div>
+            <div class="vol-pill" data-bev="sports" style="border-color: #22c55e;">⚡ Electro (1.2x)</div>
+            <div class="vol-pill" data-bev="caffeine" style="border-color: #eab308;">☕ Coffee (0.8x)</div>
+            <div class="vol-pill" data-bev="alcohol" style="border-color: #ef4444;">🍺 Alcohol (-0.5x)</div>
+        </div>
+
     <div class="volume-selector">
         <div class="vol-pill active" data-vol="0.25">Glass (250ml)</div>
         <div class="vol-pill" data-vol="0.50">Bottle (500ml)</div>
@@ -465,7 +473,7 @@
         fetch("{% url 'log_water_api' %}", {
             method: "POST",
             headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
-            body: JSON.stringify({amount: activeIncrement})
+            body: JSON.stringify({amount: activeIncrement,beverage_type: activeBeverage})
         })
             .then(res => res.json())
             .then(data => {
@@ -476,6 +484,17 @@
                     updateUI();
                 }
             });
+    });
+
+    // 🌟 Track active beverage selection
+    let activeBeverage = 'water';
+
+    document.querySelectorAll('#bevSelector .vol-pill').forEach(pill => {
+        pill.addEventListener('click', () => {
+            document.querySelector('#bevSelector .vol-pill.active').classList.remove('active');
+            pill.classList.add('active');
+            activeBeverage = pill.dataset.bev;
+        });
     });
 
     // Pill controls selector setup

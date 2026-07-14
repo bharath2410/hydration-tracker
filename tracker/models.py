@@ -53,13 +53,32 @@ class UserProfile(models.Model):
     def current_intake(self):
         today = timezone.localdate()
         logs = HydrationLog.objects.filter(user=self.user, timestamp__date=today)
-        total = sum(log.amount for log in logs)
+        # 🌟 UPDATED TO USE THE LOG'S NET HYDRATION:
+        total = sum(log.net_hydration for log in logs)
         return max(0.0, total)
 
+
 class HydrationLog(models.Model):
+    BEVERAGE_CHOICES = [
+        ('water', 'Water'),
+        ('sports', 'Electrolytes'),
+        ('caffeine', 'Coffee/Soda'),
+        ('alcohol', 'Alcohol'),
+    ]
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='hydration_logs')
-    amount = models.FloatField() # Positive for drinks, negative for decay/sweat
+    amount = models.FloatField()  # Base liquid volume in Liters
+
+    # 🌟 NEW FIELDS FOR BEVERAGE TYPES:
+    beverage_type = models.CharField(max_length=15, choices=BEVERAGE_CHOICES, default='water')
+    modifier = models.FloatField(default=1.0)  # The efficiency scaling factor
+
     timestamp = models.DateTimeField(default=timezone.now)
+
+    @property
+    def net_hydration(self):
+        """Calculates the true hydration value added or subtracted"""
+        return round(self.amount * self.modifier, 2)
 
 class Friendship(models.Model):
     from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friendships_initiated')
