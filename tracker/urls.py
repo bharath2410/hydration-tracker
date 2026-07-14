@@ -11,4 +11,5 @@ urlpatterns = [
     path('api/profile/', views.update_profile_api, name='update_profile_api'),
     path('friends/add/', views.add_friend, name='add_friend'),
     path('profile/', views.profile_view, name='profile'),
+    path('api/sync-weather/', views.sync_weather_api, name='sync_weather_api'),
 ]

@@ -535,6 +535,45 @@
     });
 
     updateUI();
+
+    // 🌟 Weather & Climate Auto-Sync Engine
+    function syncLocalWeather() {
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(position => {
+                const payload = {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude
+                };
+
+                fetch("{% url 'sync_weather_api' %}", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: JSON.stringify(payload)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        console.log(`Weather Synced! Temp: ${data.temperature}°C, Daily Goal Adjusted to: ${data.daily_goal}L`);
+
+                        // Dynamically update UI variables and text representation instantly
+                        dailyGoal = data.daily_goal;
+                        updateUI();
+                    }
+                })
+                .catch(err => console.error("Weather sync failed:", err));
+            }, err => {
+                console.warn("Location permission denied. Defaulting to temperate targets.");
+            });
+        }
+    }
+
+    // Run weather calibration instantly upon dashboard loading
+    document.addEventListener("DOMContentLoaded", () => {
+        syncLocalWeather();
+    });
 </script>
 <script>
     if ('serviceWorker' in navigator) {

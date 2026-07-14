@@ -30,6 +30,8 @@ class UserProfile(models.Model):
     last_streak_date = models.DateField(null=True, blank=True)
     last_decay_time = models.DateTimeField(default=timezone.now)
     theme_preference = models.CharField(max_length=10, default='dark')
+    latitude = models.FloatField(null=True, blank=True)
+    longitude = models.FloatField(null=True, blank=True)
 
     # 🌟 UPDATED: Smart algorithm calculation method
     def update_daily_goal(self):

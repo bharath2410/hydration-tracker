@@ -7,6 +7,7 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from .models import UserProfile, HydrationLog, Friendship
 import json
+import urllib.request
 
 
 def register(request):
@@ -206,3 +207,48 @@ def profile_view(request):
             return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
     return render(request, 'tracker/profile.html', {'profile': profile})
+
+
+@login_required
+def sync_weather_api(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            lat = float(data.get('latitude'))
+            lon = float(data.get('longitude'))
+
+            profile = request.user.profile
+            profile.latitude = lat
+            profile.longitude = lon
+
+            # Fetch current temperature from Open-Meteo's free public API
+            url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lon}&current=temperature_2m"
+            req = urllib.request.Request(url, headers={'User-Agent': 'HydrateCorePro/1.0'})
+
+            with urllib.request.urlopen(req) as response:
+                weather_data = json.loads(response.read().decode())
+                current_temp = weather_data['current']['temperature_2m']
+
+            # Smart Climate Factor Calculation:
+            # Under 20°C: temperate (0.0L)
+            # 20°C - 30°C: warm (0.25L)
+            # Over 30°C: hot/humid (0.50L adjustment)
+            if current_temp > 30.0:
+                profile.climate_factor = 0.50
+            elif current_temp > 20.0:
+                profile.climate_factor = 0.25
+            else:
+                profile.climate_factor = 0.0
+
+            profile.update_daily_goal()
+
+            return JsonResponse({
+                'status': 'success',
+                'temperature': current_temp,
+                'climate_factor': profile.climate_factor,
+                'daily_goal': profile.daily_goal
+            })
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    return JsonResponse({'status': 'invalid method'}, status=400)
