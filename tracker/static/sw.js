@@ -6,6 +6,9 @@ const ASSETS = [
     'https://cdn.jsdelivr.net/npm/chart.js'
 ];
 
+// 🌟 BACKGROUND TIMER TRACKING VARIABLES:
+let lastLogTime = Date.now();
+
 // Install Event: Cache essential assets
 self.addEventListener('install', (event) => {
     event.waitUntil(
@@ -53,7 +56,7 @@ self.addEventListener('fetch', (event) => {
     }
 });
 
-// 🌟 SW PUSH REMINDER LISTENER:
+// 🌟 SW PUSH REMINDER LISTENER (From Server):
 self.addEventListener('push', function(event) {
     let data = { title: 'Hydrate Daily', body: 'Time to drink some water!' };
 
@@ -67,7 +70,7 @@ self.addEventListener('push', function(event) {
 
     const options = {
         body: data.body,
-        icon: '/static/icon-192.png', // Or wherever your PWA main icon path is
+        icon: '/static/icon-192.png',
         badge: '/static/icon-192.png',
         vibrate: [100, 50, 100],
         data: {
@@ -84,6 +87,42 @@ self.addEventListener('push', function(event) {
         self.registration.showNotification(data.title, options)
     );
 });
+
+// 🌟 INTER-THREAD COMMUNICATION (Listens for reset signals from the frontend):
+self.addEventListener('message', (event) => {
+    if (event.data && event.data.type === 'RESET_REMINDER') {
+        lastLogTime = Date.now();
+        console.log("Background service worker timer reset successfully!");
+    }
+});
+
+// 🌟 PERSISTENT TIMER ENGINE (Runs off-thread to survive main tab suspension):
+setInterval(() => {
+    const thirtyMinutes = 30 * 60 * 1000; // 1,800,000 ms
+
+    if (Date.now() - lastLogTime >= thirtyMinutes) {
+        const options = {
+            body: "You haven't logged a drink in over 30 minutes! Take a sip to protect your streak.",
+            icon: '/static/icon-192.png',
+            badge: '/static/icon-192.png',
+            vibrate: [200, 100, 200],
+            requireInteraction: true, // Keeps warning active until explicitly dismissed
+            data: {
+                dateOfArrival: Date.now(),
+                primaryKey: '2'
+            },
+            actions: [
+                { action: 'drink', title: 'I had a drink!' },
+                { action: 'close', title: 'Dismiss' }
+            ]
+        };
+
+        self.registration.showNotification('Dehydration Warning! 💧', options);
+
+        // Push the time baseline forward to prevent notification flood
+        lastLogTime = Date.now();
+    }
+}, 60000); // Evaluates status cleanly every 60 seconds
 
 // Handle clicking on the notification actions
 self.addEventListener('notificationclick', function(event) {
