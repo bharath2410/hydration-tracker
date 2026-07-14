@@ -358,12 +358,13 @@
             <div class="vol-pill" data-bev="alcohol" style="border-color: #ef4444;">🍺 Alcohol (-0.5x)</div>
         </div>
 
-    <div class="volume-selector" id="volumeSelector" style="margin-bottom: 15px;">
-        <div class="vol-pill active" data-vol="0.25">Glass (250ml)</div>
-        <div class="vol-pill" data-vol="0.50">Bottle (500ml)</div>
-        <div class="vol-pill" data-vol="0.75">Flask (750ml)</div>
-        <div class="vol-pill" id="customPill" data-vol="{{ profile.custom_volume }}">Custom ({{ profile.custom_volume|floatformat:2 }}L)</div>
-    </div>
+    <h4 style="font-size: 0.85rem; opacity: 0.6; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; text-align: center; width: 100%;">Volume Consumed</h4>
+        <div class="volume-selector" id="volumeSelector" style="margin-bottom: 15px;">
+            <div class="vol-pill active" data-vol="0.25">Glass (250ml)</div>
+            <div class="vol-pill" data-vol="0.50">Bottle (500ml)</div>
+            <div class="vol-pill" data-vol="0.75">Flask (750ml)</div>
+            <div class="vol-pill" id="customPill" data-vol="{{ profile.custom_volume }}">Custom ({{ profile.custom_volume|floatformat:2 }}L)</div>
+        </div>
 
     <div class="social-card">
         <h3>FRIENDS LEADERBOARD standings</h3>
