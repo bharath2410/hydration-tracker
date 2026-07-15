@@ -27,6 +27,7 @@ class UserProfile(models.Model):
     profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
     daily_goal = models.FloatField(default=2.50)
     streak = models.IntegerField(default=0)
+    streak_rescues = models.IntegerField(default=1)
     last_streak_date = models.DateField(null=True, blank=True)
     last_decay_time = models.DateTimeField(default=timezone.now)
     theme_preference = models.CharField(max_length=10, default='dark')
@@ -121,6 +122,7 @@ class HydrationLog(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='hydration_logs')
     amount = models.FloatField()  # Base liquid volume in Liters
+    net_amount = models.FloatField(default=0.0)  # Calculated cellular hydration (e.g., 0.60L for Electro, -0.25L for Alcohol)
 
     # 🌟 NEW FIELDS FOR BEVERAGE TYPES:
     beverage_type = models.CharField(max_length=15, choices=BEVERAGE_CHOICES, default='water')
@@ -128,10 +130,37 @@ class HydrationLog(models.Model):
 
     timestamp = models.DateTimeField(default=timezone.now)
 
-    @property
-    def net_hydration(self):
-        """Calculates the true hydration value added or subtracted"""
-        return round(self.amount * self.modifier, 2)
+    def save(self, *args, **kwargs):
+        # Dynamically calculate net hydration impact before saving to DB
+        multipliers = {
+            'water': 1.0,
+            'sports': 1.2,
+            'caffeine': 0.8,
+            'alcohol': -0.5
+        }
+        factor = multipliers.get(self.beverage_type, 1.0)
+        self.net_amount = round(self.amount * factor, 2)
+        super().save(*args, **kwargs)
+
+class HydrationGroup(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    members = models.ManyToManyField(User, related_name='hydration_groups')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+
+class GroupChallenge(models.Model):
+    group = models.ForeignKey(HydrationGroup, on_delete=models.CASCADE, related_name='challenges')
+    title = models.CharField(max_length=150)
+    target_volume = models.FloatField() # Total target group Liters (e.g., 50.0L)
+    current_volume = models.FloatField(default=0.0) # Combined group Liters logged
+    start_date = models.DateField(default=timezone.localdate)
+    end_date = models.DateField()
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.group.name})"
 
 class Friendship(models.Model):
     from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friendships_initiated')

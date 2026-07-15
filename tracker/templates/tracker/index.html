@@ -337,6 +337,15 @@
     {% endif %}
     <div class="sensor-banner" id="sensorBanner">🔒 Enable Motion Verification (Anti-Cheat)</div>
 
+    <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 5px;">
+        <span style="font-size: 0.8rem; opacity: 0.8;">Rescue Tokens: <strong id="rescueCount">{{ profile.streak_rescues }}</strong></span>
+        {% if profile.streak_rescues > 0 %}
+            <button id="useRescueBtn" style="background: var(--state-color); color: white; border: none; padding: 3px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; cursor: pointer;">Rescue Streak</button>
+        {% endif %}
+    </div>
+
+    <div id="digitalGarden" style="font-size: 3rem; transition: transform 0.3s ease; margin-bottom: -15px; z-index: 10;" title="Digital Garden Plant">🌱</div>
+
     <div class="circle-wrapper locked" id="tapZone">
         <div class="wave-container">
             <div class="wave" id="fluidWave"></div>
@@ -454,7 +463,9 @@
                 statusHint.textContent = "Tilt Phone to Drink";
             }
         }
+    updatePlantStatus();
     }
+
 
     // --- 🌟 Upgraded Notification Engine ---
     const notiPromptBtn = document.getElementById('notiPromptBtn');
@@ -563,8 +574,30 @@
         }
     }
 
-    // --- Interactive Analytics Rendering Engine (Chart.js) ---
-    function renderChart(labels, dataValues) {
+    // 🌟 Digital Garden Plant Growth Evolution Logic
+    function updatePlantStatus() {
+        const garden = document.getElementById('digitalGarden');
+        if (!garden) return;
+
+        const progressRatio = currentIntake / dailyGoal;
+
+        if (progressRatio === 0) {
+            garden.textContent = "🫙"; // Empty Pot
+        } else if (progressRatio < 0.25) {
+            garden.textContent = "🌱"; // Seedling
+        } else if (progressRatio < 0.60) {
+            garden.textContent = "🪴"; // Growing Houseplant
+        } else if (progressRatio < 1.0) {
+            garden.textContent = "🌿"; // Leafy Bush
+        } else {
+            garden.textContent = "🌸"; // Blooming Flower (Daily Target Achieved!)
+            garden.style.transform = "scale(1.2)";
+            setTimeout(() => { garden.style.transform = "scale(1.0)"; }, 400);
+        }
+    }
+
+    // 🌟 UPDATED: Advanced Cellular Nutrition Double-Dataset Graph
+    function renderChart(labels, rawValues, netValues) {
         const ctx = document.getElementById('analyticsChart');
         if (!ctx) return;
 
@@ -580,27 +613,30 @@
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [{
-                    label: 'Litres Logged',
-                    data: dataValues,
-                    backgroundColor: '#38bdf8',
-                    borderRadius: 6,
-                    borderSkipped: false,
-                    maxBarThickness: 32,
-                }]
+                datasets: [
+                    {
+                        label: 'Total Liquid Drunk',
+                        data: rawValues,
+                        backgroundColor: 'rgba(148, 163, 184, 0.5)', // Clean JS Comment
+                        borderRadius: 6,
+                        maxBarThickness: 24,
+                    },
+                    {
+                        label: 'True Cellular Hydration',
+                        data: netValues,
+                        backgroundColor: '#38bdf8', // Clean JS Comment
+                        borderRadius: 6,
+                        maxBarThickness: 24,
+                    }
+                ]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: { display: false },
-                    tooltip: {
-                        backgroundColor: '#1e293b',
-                        titleColor: '#38bdf8',
-                        bodyColor: '#ffffff',
-                        borderColor: 'rgba(255,255,255,0.1)',
-                        borderWidth: 1,
-                        displayColors: false
+                    legend: {
+                        display: true,
+                        labels: { color: tickColor, font: { size: 9 } }
                     }
                 },
                 scales: {
@@ -618,11 +654,13 @@
         });
     }
 
+    // Update fetch call to receive dual arrays:
     function fetchAnalytics(rangeType) {
         fetch(`/api/analytics/${rangeType}/`)
             .then(res => res.json())
             .then(data => {
-                renderChart(data.labels, data.data);
+                // Pass raw and net arrays cleanly:
+                renderChart(data.labels, data.raw_data, data.net_data);
             })
             .catch(err => console.error("Could not fetch chart metrics:", err));
     }
@@ -796,6 +834,25 @@
             fetchAnalytics(tab.dataset.range);
         });
     });
+
+    const rescueBtn = document.getElementById('useRescueBtn');
+    if (rescueBtn) {
+        rescueBtn.addEventListener('click', () => {
+            fetch('/api/rescue-streak/', {
+                method: "POST",
+                headers: { "X-CSRFToken": "{{ csrf_token }}" }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('rescueCount').textContent = data.rescues;
+                    document.querySelector('#streakContainer span').textContent = data.streak;
+                    if (data.rescues === 0) rescueBtn.style.display = 'none';
+                    alert("Streak Rescued! Keep up the great work today!");
+                }
+            });
+        });
+    }
 
     // --- PWA Service Worker Registration ---
     if ('serviceWorker' in navigator) {

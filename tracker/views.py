@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 from django.views.decorators.csrf import csrf_exempt
 from datetime import timedelta
 
-from .models import UserProfile, HydrationLog, Friendship, UserAchievement, Nudge
+from .models import UserProfile, HydrationLog, Friendship, UserAchievement, Nudge, HydrationGroup, GroupChallenge
 import json
 import urllib.request
 
@@ -103,6 +103,7 @@ def index(request):
     return render(request, 'tracker/index.html', context)
 
 
+@csrf_exempt
 @login_required
 def log_water_api(request):
     if request.method == 'POST':
@@ -110,28 +111,32 @@ def log_water_api(request):
             data = json.loads(request.body)
             amount = float(data.get('amount', 0.25))
             bev_type = data.get('beverage_type', 'water')
-        except:
+        except Exception:
             amount = 0.25
             bev_type = 'water'
 
-        # 🌟 Define hydration multipliers
-        modifiers = {
-            'water': 1.0,
-            'sports': 1.2,
-            'caffeine': 0.8,
-            'alcohol': -0.5
-        }
-        mod = modifiers.get(bev_type, 1.0)
-
         profile = request.user.profile
 
-        # Create log with type and modifier parameters
-        HydrationLog.objects.create(
+        # 🌟 Create Hydration Log (the model save() method automatically calculates net_amount)
+        log = HydrationLog.objects.create(
             user=request.user,
             amount=amount,
-            beverage_type=bev_type,
-            modifier=mod
+            beverage_type=bev_type
         )
+
+        # 🌟 Update user's daily progress using the calculated net hydration amount
+        profile.current_intake = round(float(profile.current_intake) + log.net_amount, 2)
+        profile.save()
+
+        # 🌟 Increment active Group Challenges for any groups this user is in
+        active_challenges = GroupChallenge.objects.filter(
+            group__members=request.user,
+            is_active=True,
+            end_date__gte=timezone.localdate()
+        )
+        for challenge in active_challenges:
+            challenge.current_volume = round(challenge.current_volume + log.net_amount, 2)
+            challenge.save()
 
         # Check streak achievements on logging
         today = timezone.localdate()
@@ -140,8 +145,9 @@ def log_water_api(request):
             profile.last_streak_date = today
             profile.save()
 
-            # 🌟 NEW: Check achievements on successful hydration log
+            # Check achievements on successful hydration log
             profile.check_and_award_achievements()
+
         return JsonResponse({
             'status': 'success',
             'current_intake': round(profile.current_intake, 2),
@@ -401,3 +407,78 @@ def check_new_nudges_api(request):
             'nudges': nudge_list
         })
     return JsonResponse({'status': 'invalid method'}, status=400)
+
+
+@login_required
+def use_rescue_api(request):
+    """Uses a Streak Rescue token to protect a broken hydration streak"""
+    if request.method == 'POST':
+        profile = request.user.profile
+        if profile.streak_rescues > 0:
+            profile.streak_rescues -= 1
+            # Prevent resetting by setting streak date to today
+            profile.last_streak_date = timezone.localdate()
+            # If streak is 0, give them an instant +1 rescue boost
+            if profile.streak == 0:
+                profile.streak = 1
+            profile.save()
+            return JsonResponse({'status': 'success', 'rescues': profile.streak_rescues, 'streak': profile.streak})
+        return JsonResponse({'status': 'error', 'message': 'No rescues left!'}, status=400)
+
+
+@login_required
+def join_group_api(request):
+    """Lets users join or create a shared social hydration group"""
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        group_name = data.get('group_name', '').strip()
+        if not group_name:
+            return JsonResponse({'status': 'error', 'message': 'Group name cannot be empty'}, status=400)
+
+        group, created = HydrationGroup.objects.get_or_create(name=group_name)
+        group.members.add(request.user)
+
+        # Create a default Group Challenge if it is a brand-new group
+        if created:
+            GroupChallenge.objects.create(
+                group=group,
+                title=f"First Team Goal: {group_name}",
+                target_volume=50.0,
+                end_date=timezone.localdate() + timedelta(days=7)
+            )
+
+        return JsonResponse({'status': 'success', 'group_name': group.name})
+
+
+# 🌟 UPDATE: Advanced Double Dataset Analytics API
+@login_required
+def analytics_data_api(request, range_type):
+    today = timezone.localdate()
+    start_date = today - timedelta(days=6) if range_type == 'weekly' else today - timedelta(days=29)
+
+    logs = HydrationLog.objects.filter(
+        user=request.user,
+        timestamp__date__range=[start_date, today]
+    ).annotate(date=TruncDate('timestamp')) \
+        .values('date') \
+        .annotate(total_raw=Sum('amount'), total_net=Sum('net_amount')) \
+        .order_by('date')
+
+    # Fill missing days
+    days_to_track = 7 if range_type == 'weekly' else 30
+    raw_map = {start_date + timedelta(days=i): 0.0 for i in range(days_to_track)}
+    net_map = {start_date + timedelta(days=i): 0.0 for i in range(days_to_track)}
+
+    for log in logs:
+        log_date = log['date']
+        if log_date in raw_map:
+            raw_map[log_date] = round(log['total_raw'], 2)
+            net_map[log_date] = round(log['total_net'], 2)
+
+    labels = [date.strftime('%a (%d)' if range_type == 'weekly' else '%d %b') for date in raw_map.keys()]
+
+    return JsonResponse({
+        'labels': labels,
+        'raw_data': list(raw_map.values()),  # Total fluids drunk
+        'net_data': list(net_map.values())  # True cellular water hydration
+    })
