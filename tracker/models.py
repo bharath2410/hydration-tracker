@@ -122,7 +122,7 @@ class HydrationLog(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='hydration_logs')
     amount = models.FloatField()  # Base liquid volume in Liters
-    net_amount = models.FloatField(default=0.0)  # Calculated cellular hydration (e.g., 0.60L for Electro, -0.25L for Alcohol)
+    net_hydration = models.FloatField(default=0.0)  # Calculated cellular hydration (e.g., 0.60L for Electro, -0.25L for Alcohol)
 
     # 🌟 NEW FIELDS FOR BEVERAGE TYPES:
     beverage_type = models.CharField(max_length=15, choices=BEVERAGE_CHOICES, default='water')

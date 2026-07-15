@@ -125,7 +125,7 @@ def log_water_api(request):
         )
 
         # 🌟 Update user's daily progress using the calculated net hydration amount
-        profile.current_intake = round(float(profile.current_intake) + log.net_amount, 2)
+        profile.current_intake = round(float(profile.current_intake) + log.net_hydration, 2)
         profile.save()
 
         # 🌟 Increment active Group Challenges for any groups this user is in
@@ -327,7 +327,7 @@ def analytics_data_api(request, range_type):
             timestamp__date__range=[start_date, today]
         ).annotate(date=TruncDate('timestamp')) \
             .values('date') \
-            .annotate(total=Sum('amount')) \
+            .annotate(total_raw=Sum('amount'), total_net=Sum('net_hydration')) \
             .order_by('date')  # 🌟 Clean, correct Django sorting
 
         # Ensure every day in the range has a data point (fill missing with 0)
@@ -341,7 +341,7 @@ def analytics_data_api(request, range_type):
             timestamp__date__range=[start_date, today]
         ).annotate(date=TruncDate('timestamp')) \
             .values('date') \
-            .annotate(total=Sum('amount')) \
+            .annotate(total_raw=Sum('amount'), total_net=Sum('net_hydration')) \
             .order_by('date')
 
         date_map = {start_date + timedelta(days=i): 0.0 for i in range(30)}
@@ -354,7 +354,7 @@ def analytics_data_api(request, range_type):
             timestamp__date__range=[start_date, today]
         ).annotate(month=TruncMonth('timestamp')) \
             .values('month') \
-            .annotate(total=Sum('amount')) \
+            .annotate(total_raw=Sum('amount'), total_net=Sum('net_hydration')) \
             .order_by('month')
 
         labels = []
