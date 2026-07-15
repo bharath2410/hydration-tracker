@@ -449,7 +449,18 @@
     let activeIncrement = 0.25;
     let currentIntake = parseFloat("{{ current_intake }}") || 0.00;
     let dailyGoal = parseFloat("{{ profile.daily_goal }}") || 2.50;
-    let historyLogs = JSON.parse('{{ history_logs|safe }}' || '[0, 0, 0, 0, 0, 0, 0]');
+
+    // Safe evaluation of history logs context:
+    let historyLogs = [0, 0, 0, 0, 0, 0, 0];
+    try {
+        const rawLogs = "{{ history_logs|safe }}";
+        if (rawLogs && rawLogs.trim() !== "") {
+            historyLogs = JSON.parse(rawLogs);
+        }
+    } catch(e) {
+        console.warn("Could not parse history logs, falling back to empty array:", e);
+    }
+    
     let isVerifiedDrink = false;
     let maxTiltDetected = false;
     let activeBeverage = 'water';
