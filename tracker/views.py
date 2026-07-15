@@ -484,7 +484,7 @@ def analytics_data_api(request, range_type):
         timestamp__date__range=[start_date, today]
     ).annotate(date=TruncDate('timestamp')) \
         .values('date') \
-        .annotate(total_raw=Sum('amount'), total_net=Sum('net_amount')) \
+        .annotate(total_raw=Sum('amount'), total_net=Sum('net_hydration')) \
         .order_by('date')
 
     # Fill missing days

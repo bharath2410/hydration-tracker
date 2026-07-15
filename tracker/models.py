@@ -139,7 +139,7 @@ class HydrationLog(models.Model):
             'alcohol': -0.5
         }
         factor = multipliers.get(self.beverage_type, 1.0)
-        self.net_amount = round(self.amount * factor, 2)
+        self.net_hydration = round(self.amount * factor, 2)
         super().save(*args, **kwargs)
 
 class HydrationGroup(models.Model):
