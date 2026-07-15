@@ -325,11 +325,9 @@ def dismiss_nudges_api(request):
 
 @login_required
 def analytics_data_api(request, range_type):
+    """Returns aggregated hydration data for charts based on range selection"""
     try:
         today = timezone.localdate()
-        from datetime import timedelta
-        from django.db.models import Sum
-        from django.db.models.functions import TruncDate, TruncMonth
 
         if range_type == 'weekly':
             start_date = today - timedelta(days=6)
@@ -386,9 +384,11 @@ def analytics_data_api(request, range_type):
                 net_data.append(net_month_map.get(m_str, 0.0))
 
             return JsonResponse({'labels': labels, 'raw_data': raw_data, 'net_data': net_data})
+
         else:
             return JsonResponse({'status': 'error', 'message': 'Invalid range'}, status=400)
 
+        # 🌟 CORRECT POPULATION LOGIC FOR WEEKLY/MONTHLY:
         for log in logs:
             log_date = log['date']
             if log_date in raw_map:
@@ -406,7 +406,6 @@ def analytics_data_api(request, range_type):
     except Exception as e:
         return JsonResponse({
             'status': 'error',
-            'error_type': type(e).__name__,
             'message': str(e),
             'traceback': traceback.format_exc()
         }, status=500)
