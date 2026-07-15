@@ -117,28 +117,27 @@ def log_water_api(request):
 
         profile = request.user.profile
 
-        # 🌟 Create Hydration Log (the model save() method automatically calculates net_amount)
+        # 🌟 1. Create the log (the model save() automatically calculates net_hydration)
         log = HydrationLog.objects.create(
             user=request.user,
             amount=amount,
             beverage_type=bev_type
         )
 
-        # 🌟 Update user's daily progress using the calculated net hydration amount
-        profile.current_intake = round(float(profile.current_intake) + log.net_hydration, 2)
-        profile.save()
+        # ❌ REMOVED: profile.current_intake = ... (since it's a read-only property!)
+        # Instead, saving the log above automatically updates profile.current_intake!
 
-        # 🌟 Increment active Group Challenges for any groups this user is in
+        # 🌟 2. Increment active Group Challenges
         active_challenges = GroupChallenge.objects.filter(
             group__members=request.user,
             is_active=True,
             end_date__gte=timezone.localdate()
         )
         for challenge in active_challenges:
-            challenge.current_volume = round(challenge.current_volume + log.net_amount, 2)
+            challenge.current_volume = round(challenge.current_volume + log.net_hydration, 2)
             challenge.save()
 
-        # Check streak achievements on logging
+        # 🌟 3. Check streak achievements using the updated property value
         today = timezone.localdate()
         if profile.current_intake >= profile.daily_goal and profile.last_streak_date != today:
             profile.streak += 1
@@ -150,7 +149,7 @@ def log_water_api(request):
 
         return JsonResponse({
             'status': 'success',
-            'current_intake': round(profile.current_intake, 2),
+            'current_intake': round(profile.current_intake, 2), # Reads the property cleanly
             'streak': profile.streak
         })
     return JsonResponse({'status': 'invalid method'}, status=400)
