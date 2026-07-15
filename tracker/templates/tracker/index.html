@@ -674,6 +674,7 @@
         });
     }
 
+    // 🌟 FIXED: Wrapped fetch string interpolation inside standard JS backticks ( ` )
     function fetchAnalytics(rangeType) {
         fetch(`/api/analytics/${rangeType}/`)
             .then(res => res.json())
@@ -701,7 +702,7 @@
                 .then(data => {
                     if (data.status === 'success') {
                         alert(`Success! You have joined "${data.group_name}"`);
-                        window.location.reload(); // Refresh to display the challenge card details cleanly
+                        window.location.reload();
                     } else {
                         alert(data.message || "Failed to join group.");
                     }

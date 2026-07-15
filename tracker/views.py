@@ -1,3 +1,5 @@
+import traceback
+
 from django.db.models import Sum
 from django.db.models.functions import TruncMonth, TruncDate
 from django.shortcuts import render, redirect
@@ -111,47 +113,55 @@ def log_water_api(request):
             data = json.loads(request.body)
             amount = float(data.get('amount', 0.25))
             bev_type = data.get('beverage_type', 'water')
-        except Exception:
-            amount = 0.25
-            bev_type = 'water'
 
-        profile = request.user.profile
+            profile = request.user.profile
 
-        # 🌟 1. Create the log (the model save() automatically calculates net_hydration)
-        log = HydrationLog.objects.create(
-            user=request.user,
-            amount=amount,
-            beverage_type=bev_type
-        )
+            # 1. Create the log
+            log = HydrationLog.objects.create(
+                user=request.user,
+                amount=amount,
+                beverage_type=bev_type
+            )
 
-        # ❌ REMOVED: profile.current_intake = ... (since it's a read-only property!)
-        # Instead, saving the log above automatically updates profile.current_intake!
+            # 2. Increment active Group Challenges (Wrapped in try/except in case tables don't exist yet)
+            try:
+                active_challenges = GroupChallenge.objects.filter(
+                    group__members=request.user,
+                    is_active=True,
+                    end_date__gte=timezone.localdate()
+                )
+                for challenge in active_challenges:
+                    challenge.current_volume = round(challenge.current_volume + log.net_hydration, 2)
+                    challenge.save()
+            except Exception as table_err:
+                print(f"Group challenge update skipped (migration missing?): {table_err}")
 
-        # 🌟 2. Increment active Group Challenges
-        active_challenges = GroupChallenge.objects.filter(
-            group__members=request.user,
-            is_active=True,
-            end_date__gte=timezone.localdate()
-        )
-        for challenge in active_challenges:
-            challenge.current_volume = round(challenge.current_volume + log.net_hydration, 2)
-            challenge.save()
+            # 3. Check streak achievements
+            today = timezone.localdate()
+            if profile.current_intake >= profile.daily_goal and profile.last_streak_date != today:
+                profile.streak += 1
+                profile.last_streak_date = today
+                profile.save()
 
-        # 🌟 3. Check streak achievements using the updated property value
-        today = timezone.localdate()
-        if profile.current_intake >= profile.daily_goal and profile.last_streak_date != today:
-            profile.streak += 1
-            profile.last_streak_date = today
-            profile.save()
+                # Check achievements
+                if hasattr(profile, 'check_and_award_achievements'):
+                    profile.check_and_award_achievements()
 
-            # Check achievements on successful hydration log
-            profile.check_and_award_achievements()
+            return JsonResponse({
+                'status': 'success',
+                'current_intake': round(profile.current_intake, 2),
+                'streak': profile.streak
+            })
 
-        return JsonResponse({
-            'status': 'success',
-            'current_intake': round(profile.current_intake, 2), # Reads the property cleanly
-            'streak': profile.streak
-        })
+        except Exception as e:
+            # 🌟 This sends the exact crash traceback back to your browser console!
+            return JsonResponse({
+                'status': 'error',
+                'error_type': type(e).__name__,
+                'message': str(e),
+                'traceback': traceback.format_exc()
+            }, status=500)
+
     return JsonResponse({'status': 'invalid method'}, status=400)
 
 
@@ -315,92 +325,91 @@ def dismiss_nudges_api(request):
 
 @login_required
 def analytics_data_api(request, range_type):
-    """Returns aggregated hydration data for charts based on range selection"""
-    today = timezone.localdate()
+    try:
+        today = timezone.localdate()
+        from datetime import timedelta
+        from django.db.models import Sum
+        from django.db.models.functions import TruncDate, TruncMonth
 
-    if range_type == 'weekly':
-        # Last 7 days
-        start_date = today - timedelta(days=6)
-        logs = HydrationLog.objects.filter(
-            user=request.user,
-            timestamp__date__range=[start_date, today]
-        ).annotate(date=TruncDate('timestamp')) \
-            .values('date') \
-            .annotate(total_raw=Sum('amount'), total_net=Sum('net_hydration')) \
-            .order_by('date')
+        if range_type == 'weekly':
+            start_date = today - timedelta(days=6)
+            logs = HydrationLog.objects.filter(
+                user=request.user,
+                timestamp__date__range=[start_date, today]
+            ).annotate(date=TruncDate('timestamp')) \
+                .values('date') \
+                .annotate(total_raw=Sum('amount'), total_net=Sum('net_hydration')) \
+                .order_by('date')
 
-        # Ensure every day in the range has a data point (fill missing with 0)
-        raw_map = {start_date + timedelta(days=i): 0.0 for i in range(7)}
-        net_map = {start_date + timedelta(days=i): 0.0 for i in range(7)}
+            raw_map = {start_date + timedelta(days=i): 0.0 for i in range(7)}
+            net_map = {start_date + timedelta(days=i): 0.0 for i in range(7)}
 
-    elif range_type == 'monthly':
-        # Last 30 days
-        start_date = today - timedelta(days=29)
-        logs = HydrationLog.objects.filter(
-            user=request.user,
-            timestamp__date__range=[start_date, today]
-        ).annotate(date=TruncDate('timestamp')) \
-            .values('date') \
-            .annotate(total_raw=Sum('amount'), total_net=Sum('net_hydration')) \
-            .order_by('date')
+        elif range_type == 'monthly':
+            start_date = today - timedelta(days=29)
+            logs = HydrationLog.objects.filter(
+                user=request.user,
+                timestamp__date__range=[start_date, today]
+            ).annotate(date=TruncDate('timestamp')) \
+                .values('date') \
+                .annotate(total_raw=Sum('amount'), total_net=Sum('net_hydration')) \
+                .order_by('date')
 
-        raw_map = {start_date + timedelta(days=i): 0.0 for i in range(30)}
-        net_map = {start_date + timedelta(days=i): 0.0 for i in range(30)}
+            raw_map = {start_date + timedelta(days=i): 0.0 for i in range(30)}
+            net_map = {start_date + timedelta(days=i): 0.0 for i in range(30)}
 
-    elif range_type == 'yearly':
-        # Last 12 months
-        start_date = today - timedelta(days=365)
-        logs = HydrationLog.objects.filter(
-            user=request.user,
-            timestamp__date__range=[start_date, today]
-        ).annotate(month=TruncMonth('timestamp')) \
-            .values('month') \
-            .annotate(total_raw=Sum('amount'), total_net=Sum('net_hydration')) \
-            .order_by('month')
+        elif range_type == 'yearly':
+            start_date = today - timedelta(days=365)
+            logs = HydrationLog.objects.filter(
+                user=request.user,
+                timestamp__date__range=[start_date, today]
+            ).annotate(month=TruncMonth('timestamp')) \
+                .values('month') \
+                .annotate(total_raw=Sum('amount'), total_net=Sum('net_hydration')) \
+                .order_by('month')
 
-        labels = []
-        raw_data = []
-        net_data = []
+            labels = []
+            raw_data = []
+            net_data = []
+            raw_month_map = {}
+            net_month_map = {}
 
-        # Maps to group raw and net sums by month string
-        raw_month_map = {}
-        net_month_map = {}
+            for log in logs:
+                month_str = log['month'].strftime('%b %Y')
+                raw_month_map[month_str] = round(log['total_raw'] or 0.0, 2)
+                net_month_map[month_str] = round(log['total_net'] or 0.0, 2)
+
+            for i in range(12):
+                m_date = today - timedelta(days=30 * (11 - i))
+                m_str = m_date.strftime('%b %Y')
+                labels.append(m_str)
+                raw_data.append(raw_month_map.get(m_str, 0.0))
+                net_data.append(net_month_map.get(m_str, 0.0))
+
+            return JsonResponse({'labels': labels, 'raw_data': raw_data, 'net_data': net_data})
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Invalid range'}, status=400)
+
         for log in logs:
-            month_str = log['month'].strftime('%b %Y')
-            raw_month_map[month_str] = round(log['total_raw'] or 0.0, 2)
-            net_month_map[month_str] = round(log['total_net'] or 0.0, 2)
+            log_date = log['date']
+            if log_date in raw_map:
+                raw_map[log_date] = round(log['total_raw'] or 0.0, 2)
+                net_map[log_date] = round(log['total_net'] or 0.0, 2)
 
-        for i in range(12):
-            m_date = today - timedelta(days=30 * (11 - i))
-            m_str = m_date.strftime('%b %Y')
-            labels.append(m_str)
-            raw_data.append(raw_month_map.get(m_str, 0.0))
-            net_data.append(net_month_map.get(m_str, 0.0))
+        labels = [date.strftime('%a (%d)' if range_type == 'weekly' else '%d %b') for date in raw_map.keys()]
 
         return JsonResponse({
             'labels': labels,
-            'raw_data': raw_data,
-            'net_data': net_data
+            'raw_data': list(raw_map.values()),
+            'net_data': list(net_map.values())
         })
 
-    else:
-        return JsonResponse({'status': 'error', 'message': 'Invalid range'}, status=400)
-
-    # 🌟 Populate weekly/monthly dual-data maps using correct aggregation keys
-    for log in logs:
-        log_date = log['date']
-        if log_date in raw_map:
-            raw_map[log_date] = round(log['total_raw'] or 0.0, 2)
-            net_map[log_date] = round(log['total_net'] or 0.0, 2)
-
-    labels = [date.strftime('%a (%d)' if range_type == 'weekly' else '%d %b') for date in raw_map.keys()]
-
-    return JsonResponse({
-        'labels': labels,
-        'raw_data': list(raw_map.values()),
-        'net_data': list(net_map.values())
-    })
-
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'error_type': type(e).__name__,
+            'message': str(e),
+            'traceback': traceback.format_exc()
+        }, status=500)
 
 @login_required
 def check_new_nudges_api(request):
