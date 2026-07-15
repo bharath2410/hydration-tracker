@@ -776,7 +776,15 @@
                 headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
                 body: JSON.stringify({amount: activeIncrement, beverage_type: activeBeverage})
             })
-            .then(res => res.json())
+            .then(res => {
+                if (!res.ok) {
+                    // If the server crashed (500), read the error traceback json
+                    return res.json().then(errData => {
+                        throw new Error(errData.message || "Internal Server Error");
+                    });
+                }
+                return res.json();
+            })
             .then(data => {
                 if (data.status === 'success') {
                     currentIntake = data.current_intake;
@@ -791,6 +799,11 @@
                         });
                     }
                 }
+            })
+            .catch(err => {
+                // 🌟 Display the exact python traceback on your mobile screen!
+                alert(`Logging Failed! Error: ${err.message}`);
+                console.error("Hydration Log Error:", err);
             });
         });
     }
