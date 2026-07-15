@@ -328,10 +328,11 @@ def analytics_data_api(request, range_type):
         ).annotate(date=TruncDate('timestamp')) \
             .values('date') \
             .annotate(total_raw=Sum('amount'), total_net=Sum('net_hydration')) \
-            .order_by('date')  # 🌟 Clean, correct Django sorting
+            .order_by('date')
 
         # Ensure every day in the range has a data point (fill missing with 0)
-        date_map = {start_date + timedelta(days=i): 0.0 for i in range(7)}
+        raw_map = {start_date + timedelta(days=i): 0.0 for i in range(7)}
+        net_map = {start_date + timedelta(days=i): 0.0 for i in range(7)}
 
     elif range_type == 'monthly':
         # Last 30 days
@@ -344,7 +345,8 @@ def analytics_data_api(request, range_type):
             .annotate(total_raw=Sum('amount'), total_net=Sum('net_hydration')) \
             .order_by('date')
 
-        date_map = {start_date + timedelta(days=i): 0.0 for i in range(30)}
+        raw_map = {start_date + timedelta(days=i): 0.0 for i in range(30)}
+        net_map = {start_date + timedelta(days=i): 0.0 for i in range(30)}
 
     elif range_type == 'yearly':
         # Last 12 months
@@ -358,33 +360,47 @@ def analytics_data_api(request, range_type):
             .order_by('month')
 
         labels = []
-        data = []
-        month_map = {}
+        raw_data = []
+        net_data = []
+
+        # Maps to group raw and net sums by month string
+        raw_month_map = {}
+        net_month_map = {}
         for log in logs:
             month_str = log['month'].strftime('%b %Y')
-            month_map[month_str] = round(log['total'], 2)
+            raw_month_map[month_str] = round(log['total_raw'] or 0.0, 2)
+            net_month_map[month_str] = round(log['total_net'] or 0.0, 2)
 
         for i in range(12):
             m_date = today - timedelta(days=30 * (11 - i))
             m_str = m_date.strftime('%b %Y')
             labels.append(m_str)
-            data.append(month_map.get(m_str, 0.0))
+            raw_data.append(raw_month_map.get(m_str, 0.0))
+            net_data.append(net_month_map.get(m_str, 0.0))
 
-        return JsonResponse({'labels': labels, 'data': data})
+        return JsonResponse({
+            'labels': labels,
+            'raw_data': raw_data,
+            'net_data': net_data
+        })
 
     else:
         return JsonResponse({'status': 'error', 'message': 'Invalid range'}, status=400)
 
-    # Populate weekly/monthly data maps
+    # 🌟 Populate weekly/monthly dual-data maps using correct aggregation keys
     for log in logs:
         log_date = log['date']
-        if log_date in date_map:
-            date_map[log_date] = round(log['total'], 2)
+        if log_date in raw_map:
+            raw_map[log_date] = round(log['total_raw'] or 0.0, 2)
+            net_map[log_date] = round(log['total_net'] or 0.0, 2)
 
-    labels = [date.strftime('%a (%d)' if range_type == 'weekly' else '%d %b') for date in date_map.keys()]
-    data = list(date_map.values())
+    labels = [date.strftime('%a (%d)' if range_type == 'weekly' else '%d %b') for date in raw_map.keys()]
 
-    return JsonResponse({'labels': labels, 'data': data})
+    return JsonResponse({
+        'labels': labels,
+        'raw_data': list(raw_map.values()),
+        'net_data': list(net_map.values())
+    })
 
 
 @login_required

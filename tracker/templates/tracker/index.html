@@ -301,6 +301,22 @@
             color: white;
             font-weight: bold;
         }
+
+        /* Group Challenges Style Layout */
+        .progress-bar-container {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            height: 12px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+        .progress-bar-fill {
+            background: var(--water-color);
+            height: 100%;
+            width: 0%;
+            transition: width 0.5s ease;
+        }
     </style>
 </head>
 <body class="{% if profile.theme_preference == 'light' %}light-theme{% endif %}">
@@ -320,10 +336,11 @@
         </form>
     </div>
 </div>
-<!-- 🌟 NEW: Notification Diagnostic Badge (Only displays if permissions aren't granted) -->
-    <button id="notiPromptBtn" style="display: none; width: 100%; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; padding: 8px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; cursor: pointer;">
-        🔔 Enable App Notifications & Test
-    </button>
+
+<button id="notiPromptBtn" style="display: none; width: 85vw; max-width: 450px; margin: 15px auto 0; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); color: #38bdf8; padding: 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; cursor: pointer;">
+    🔔 Enable App Notifications & Test
+</button>
+
 <div class="container">
     {% if unread_nudges %}
     <div id="nudgeBanner" style="width: 85vw; max-width: 450px; background: rgba(249, 115, 22, 0.15); border: 1px solid var(--state-color); border-radius: 12px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-color);">
@@ -335,6 +352,7 @@
         <button id="dismissNudges" style="background: var(--state-color); color: white; border: none; padding: 4px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.75rem;">Got it</button>
     </div>
     {% endif %}
+
     <div class="sensor-banner" id="sensorBanner">🔒 Enable Motion Verification (Anti-Cheat)</div>
 
     <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 5px;">
@@ -363,20 +381,30 @@
     </div>
 
     <h3 style="font-size: 0.85rem; opacity: 0.6; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; text-align: center; width: 100%;">Beverage Type</h3>
-        <div class="volume-selector" id="bevSelector" style="margin-bottom: 15px;">
-            <div class="vol-pill active" data-bev="water" style="border-color: #38bdf8;">💧 Water (1x)</div>
-            <div class="vol-pill" data-bev="sports" style="border-color: #22c55e;">⚡ Electro (1.2x)</div>
-            <div class="vol-pill" data-bev="caffeine" style="border-color: #eab308;">☕ Coffee (0.8x)</div>
-            <div class="vol-pill" data-bev="alcohol" style="border-color: #ef4444;">🍺 Alcohol (-0.5x)</div>
-        </div>
+    <div class="volume-selector" id="bevSelector" style="margin-bottom: 15px;">
+        <div class="vol-pill active" data-bev="water" style="border-color: #38bdf8;">💧 Water (1x)</div>
+        <div class="vol-pill" data-bev="sports" style="border-color: #22c55e;">⚡ Electro (1.2x)</div>
+        <div class="vol-pill" data-bev="caffeine" style="border-color: #eab308;">☕ Coffee (0.8x)</div>
+        <div class="vol-pill" data-bev="alcohol" style="border-color: #ef4444;">🍺 Alcohol (-0.5x)</div>
+    </div>
 
     <h4 style="font-size: 0.85rem; opacity: 0.6; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px; text-align: center; width: 100%;">Volume Consumed</h4>
-        <div class="volume-selector" id="volumeSelector" style="margin-bottom: 15px;">
-            <div class="vol-pill active" data-vol="0.25">Glass (250ml)</div>
-            <div class="vol-pill" data-vol="0.50">Bottle (500ml)</div>
-            <div class="vol-pill" data-vol="0.75">Flask (750ml)</div>
-            <div class="vol-pill" id="customPill" data-vol="{{ profile.custom_volume }}">Custom ({{ profile.custom_volume|floatformat:2 }}L)</div>
+    <div class="volume-selector" id="volumeSelector" style="margin-bottom: 15px;">
+        <div class="vol-pill active" data-vol="0.25">Glass (250ml)</div>
+        <div class="vol-pill" data-vol="0.50">Bottle (500ml)</div>
+        <div class="vol-pill" data-vol="0.75">Flask (750ml)</div>
+        <div class="vol-pill" id="customPill" data-vol="{{ profile.custom_volume }}">Custom ({{ profile.custom_volume|floatformat:2 }}L)</div>
+    </div>
+
+    <div class="social-card" style="margin-top: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h3>Collaborative Challenges</h3>
+            <button id="joinGroupBtn" style="background: var(--water-color); color: white; border: none; padding: 4px 8px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; cursor: pointer;">Join/Create Group</button>
         </div>
+        <div id="challengesContainer" style="margin-top: 10px; font-size: 0.85rem;">
+            <p style="opacity: 0.6; font-style: italic;">No active team challenge. Join a hydration group to start!</p>
+        </div>
+    </div>
 
     <div class="social-card">
         <h3>FRIENDS LEADERBOARD standings</h3>
@@ -398,11 +426,10 @@
         </form>
     </div>
 
-    <div class="card" style="margin-top: 25px; padding: 20px; display: block;">
+    <div class="chart-card" style="margin-top: 25px; padding: 20px; display: block;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
             <h3 style="margin: 0; font-size: 1rem; letter-spacing: 0.5px; opacity: 0.8; text-transform: uppercase;">Hydration Performance</h3>
 
-            <!-- Chart Controls -->
             <div style="display: flex; gap: 5px; background: rgba(255,255,255,0.05); padding: 3px; border-radius: 8px;">
                 <button class="range-tab active" data-range="weekly" style="background: var(--bg-color); border: none; color: var(--text-color); padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">7D</button>
                 <button class="range-tab" data-range="monthly" style="background: none; border: none; color: #94a3b8; padding: 5px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; cursor: pointer;">30D</button>
@@ -410,7 +437,6 @@
             </div>
         </div>
 
-        <!-- 🌟 Fixed Height Wrapper with Block Layout -->
         <div style="position: relative; display: block; height: 250px; width: 100%;">
             <canvas id="analyticsChart" style="display: block; width: 100% !important; height: 100% !important;"></canvas>
         </div>
@@ -439,6 +465,7 @@
     const fluidWaveSec = document.getElementById('fluidWaveSec');
     const sensorBanner = document.getElementById('sensorBanner');
     const dismissBtn = document.getElementById('dismissNudges');
+    const notiPromptBtn = document.getElementById('notiPromptBtn');
 
     // --- UI Update Rendering Engine ---
     function updateUI() {
@@ -463,13 +490,10 @@
                 statusHint.textContent = "Tilt Phone to Drink";
             }
         }
-    updatePlantStatus();
+        updatePlantStatus();
     }
 
-
-    // --- 🌟 Upgraded Notification Engine ---
-    const notiPromptBtn = document.getElementById('notiPromptBtn');
-
+    // --- Upgraded Notification Engine ---
     function checkNotificationPermission() {
         if (!('Notification' in window)) {
             console.warn("This browser does not support notifications.");
@@ -477,23 +501,20 @@
         }
 
         if (Notification.permission === 'granted') {
-            if (notiPromptBtn) notiPromptBtn.style.display = 'none'; // Already good to go!
+            if (notiPromptBtn) notiPromptBtn.style.display = 'none';
         } else {
             if (notiPromptBtn) {
-                notiPromptBtn.style.display = 'block'; // Show the button so iOS allows the permission prompt tap
+                notiPromptBtn.style.display = 'block';
             }
         }
     }
 
-    // Direct iOS-Compliant User-Gesture Prompt Handler
     if (notiPromptBtn) {
         notiPromptBtn.addEventListener('click', () => {
             Notification.requestPermission().then(permission => {
                 if (permission === 'granted') {
                     console.log("Notification permission granted!");
                     notiPromptBtn.style.display = 'none';
-
-                    // Trigger an instant local diagnostic test notification to verify the pipeline
                     triggerInstantTestNotification();
                 } else {
                     alert("Notification permissions were denied. Please reset them in your system settings.");
@@ -506,7 +527,7 @@
         if (navigator.serviceWorker && navigator.serviceWorker.controller) {
             navigator.serviceWorker.ready.then(registration => {
                 registration.showNotification('Hydration Setup Complete! ✅', {
-                    body: 'Your phone is now successfully linked to receive hydration warnings and friend nudges!',
+                    body: 'Your phone is successfully synced for hydration warnings and friend nudges!',
                     icon: '/static/icon-192.png',
                     badge: '/static/icon-192.png',
                     vibrate: [100, 50, 100],
@@ -514,9 +535,8 @@
                 });
             });
         } else {
-            // Fallback to standard non-ServiceWorker notification if SW is still warming up
             new Notification('Hydration Setup Complete! ✅', {
-                body: 'Your phone is now successfully linked to receive hydration reminders!',
+                body: 'Your phone is successfully synced for hydration reminders!',
                 icon: '/static/icon-192.png'
             });
         }
@@ -574,7 +594,7 @@
         }
     }
 
-    // 🌟 Digital Garden Plant Growth Evolution Logic
+    // --- Digital Garden Plant Growth Evolution Logic ---
     function updatePlantStatus() {
         const garden = document.getElementById('digitalGarden');
         if (!garden) return;
@@ -582,21 +602,21 @@
         const progressRatio = currentIntake / dailyGoal;
 
         if (progressRatio === 0) {
-            garden.textContent = "🫙"; // Empty Pot
+            garden.textContent = "🫙";
         } else if (progressRatio < 0.25) {
-            garden.textContent = "🌱"; // Seedling
+            garden.textContent = "🌱";
         } else if (progressRatio < 0.60) {
-            garden.textContent = "🪴"; // Growing Houseplant
+            garden.textContent = "🪴";
         } else if (progressRatio < 1.0) {
-            garden.textContent = "🌿"; // Leafy Bush
+            garden.textContent = "🌿";
         } else {
-            garden.textContent = "🌸"; // Blooming Flower (Daily Target Achieved!)
+            garden.textContent = "🌸";
             garden.style.transform = "scale(1.2)";
             setTimeout(() => { garden.style.transform = "scale(1.0)"; }, 400);
         }
     }
 
-    // 🌟 UPDATED: Advanced Cellular Nutrition Double-Dataset Graph
+    // --- Advanced Cellular Nutrition Double-Dataset Graph (Chart.js) ---
     function renderChart(labels, rawValues, netValues) {
         const ctx = document.getElementById('analyticsChart');
         if (!ctx) return;
@@ -617,14 +637,14 @@
                     {
                         label: 'Total Liquid Drunk',
                         data: rawValues,
-                        backgroundColor: 'rgba(148, 163, 184, 0.5)', // Clean JS Comment
+                        backgroundColor: 'rgba(148, 163, 184, 0.5)',
                         borderRadius: 6,
                         maxBarThickness: 24,
                     },
                     {
                         label: 'True Cellular Hydration',
                         data: netValues,
-                        backgroundColor: '#38bdf8', // Clean JS Comment
+                        backgroundColor: '#38bdf8',
                         borderRadius: 6,
                         maxBarThickness: 24,
                     }
@@ -654,34 +674,53 @@
         });
     }
 
-    // Update fetch call to receive dual arrays:
     function fetchAnalytics(rangeType) {
         fetch(`/api/analytics/${rangeType}/`)
             .then(res => res.json())
             .then(data => {
-                // Pass raw and net arrays cleanly:
                 renderChart(data.labels, data.raw_data, data.net_data);
             })
             .catch(err => console.error("Could not fetch chart metrics:", err));
     }
 
-    // --- Document Initialization ---
-    // 🌟 WITH THIS BULLETPROOF IOS-AWARE INITIALIZATION ENGINE:
-    document.addEventListener("DOMContentLoaded", () => {
-        // Init general UI structures
-        updateUI();
+    // --- Collaborative Challenges Joining System ---
+    const joinGroupBtn = document.getElementById('joinGroupBtn');
+    if (joinGroupBtn) {
+        joinGroupBtn.addEventListener('click', () => {
+            const groupName = prompt("Enter the Hydration Group name you want to join or create:");
+            if (groupName) {
+                fetch('/api/group/join/', {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: JSON.stringify({ group_name: groupName })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert(`Success! You have joined "${data.group_name}"`);
+                        window.location.reload(); // Refresh to display the challenge card details cleanly
+                    } else {
+                        alert(data.message || "Failed to join group.");
+                    }
+                });
+            }
+        });
+    }
 
-        // Run background integrations
+    // --- Document Initialization ---
+    document.addEventListener("DOMContentLoaded", () => {
+        updateUI();
         syncLocalWeather();
         checkNotificationPermission();
         fetchAnalytics('weekly');
 
-        // Smart Motion Lifecycle Validator
+        // Smart Motion Lifecycle Validator (iOS specific compatibility)
         if (typeof DeviceOrientationEvent !== 'undefined') {
             if (typeof DeviceOrientationEvent.requestPermission === 'function') {
-                // iPhone/iOS Mode: Check if we need a fresh re-activation tap
                 if (localStorage.getItem('motion_verified') === 'true') {
-                    // Change banner text to act as a seamless "Wake Up" trigger instead of a scary lock
                     if (sensorBanner) {
                         sensorBanner.style.display = 'block';
                         sensorBanner.innerHTML = "🔄 Tap to Wake Motion Sensors";
@@ -693,7 +732,6 @@
                     if (sensorBanner) sensorBanner.style.display = 'block';
                 }
             } else {
-                // Android/Desktop Mode: Autostart works perfectly without gesture traps
                 startMotionTracking();
             }
         }
@@ -701,7 +739,7 @@
 
     // --- Interactive User Controls Setup ---
 
-    // Sensor Activation Fallback
+    // Sensor Activation Handshake
     if (sensorBanner) {
         sensorBanner.addEventListener('click', () => {
             if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -709,14 +747,13 @@
                 .then(state => {
                     if (state === 'granted') {
                         startMotionTracking();
-                        if (navigator.vibrate) navigator.vibrate([50, 50]); // Quick haptic response confirmation
+                        if (navigator.vibrate) navigator.vibrate([50, 50]);
                     } else {
-                        alert("Sensors remained locked. Please grant permission to use the gesture logging feature!");
+                        alert("Sensors remained locked. Please grant permission to log!");
                     }
                 })
                 .catch(err => {
                     console.error("Permission request intercepted:", err);
-                    // Fallback re-engagement attempt
                     startMotionTracking();
                 });
             } else {
@@ -725,7 +762,7 @@
         });
     }
 
-    // Main Hydration Zone POST logger
+    // Main Hydration Logging Request
     if (tapZone) {
         tapZone.addEventListener('click', () => {
             if (!isVerifiedDrink) {
@@ -746,7 +783,7 @@
                     if (currentIntake >= dailyGoal) confetti();
                     updateUI();
 
-                    // 🌟 Notify the background Service Worker thread to reset its timer
+                    // Notify background Service Worker thread to reset timer
                     if (navigator.serviceWorker && navigator.serviceWorker.controller) {
                         navigator.serviceWorker.controller.postMessage({
                             type: 'RESET_REMINDER'
@@ -757,7 +794,7 @@
         });
     }
 
-    // Selection Controls (Beverage type)
+    // Controls (Beverage type Selection)
     document.querySelectorAll('#bevSelector .vol-pill').forEach(pill => {
         pill.addEventListener('click', () => {
             const activePill = document.querySelector('#bevSelector .vol-pill.active');
@@ -767,7 +804,7 @@
         });
     });
 
-    // Selection Controls (Volume Increment)
+    // Controls (Volume Increment Selection)
     document.querySelectorAll('#volumeSelector .vol-pill').forEach(pill => {
         pill.addEventListener('click', () => {
             const activePill = document.querySelector('#volumeSelector .vol-pill.active');
@@ -777,7 +814,7 @@
         });
     });
 
-    // Social Nudge Send Buttons
+    // Leaderboard Social Nudge Trigger
     document.querySelectorAll('.nudge-btn').forEach(btn => {
         btn.addEventListener('click', () => {
             const username = btn.dataset.username;
@@ -797,7 +834,7 @@
         });
     });
 
-    // Social Nudge Dismiss Banner
+    // Nudge Dismiss Banner
     if (dismissBtn) {
         dismissBtn.addEventListener('click', () => {
             fetch('/api/nudge/dismiss/', {
@@ -817,7 +854,7 @@
         });
     }
 
-    // Performance Chart Toggle Tabs
+    // Performance Chart Toggle Controls
     document.querySelectorAll('.range-tab').forEach(tab => {
         tab.addEventListener('click', () => {
             const activeTab = document.querySelector('.range-tab.active');
@@ -835,6 +872,7 @@
         });
     });
 
+    // Streak Rescue Operations
     const rescueBtn = document.getElementById('useRescueBtn');
     if (rescueBtn) {
         rescueBtn.addEventListener('click', () => {
@@ -854,7 +892,7 @@
         });
     }
 
-    // --- PWA Service Worker Registration ---
+    // --- Service Worker Registration Loop ---
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             navigator.serviceWorker.register('/sw.js')
