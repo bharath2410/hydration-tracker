@@ -343,14 +343,16 @@
 
 <div class="container">
     {% if unread_nudges %}
-    <div id="nudgeBanner" style="width: 85vw; max-width: 450px; background: rgba(249, 115, 22, 0.15); border: 1px solid var(--state-color); border-radius: 12px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-color);">
-        <span>💧
-            {% for nudge in unread_nudges %}
-                <strong>{{ nudge.sender.username }}</strong>{% if not forloop.last %}, {% endif %}
-            {% endfor %} nudged you to stay hydrated!
-        </span>
-        <button id="dismissNudges" style="background: var(--state-color); color: white; border: none; padding: 4px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.75rem;">Got it</button>
-    </div>
+        <div id="nudgeBanner" style="width: 85vw; max-width: 450px; background: rgba(249, 115, 22, 0.15); border: 1px solid var(--state-color); border-radius: 12px; padding: 12px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-color);">
+            <span>
+                {% for nudge in unread_nudges %}
+                    <strong>{{ nudge.sender.username }}</strong> sent you a
+                    {% if nudge.vibe == 'urgent' %}🚨 Urgent Alert!{% elif nudge.vibe == 'challenge' %}🏆 Hydration Challenge!{% else %}💧 Friendly Nudge!{% endif %}
+                    {% if not forloop.last %}, {% endif %}
+                {% endfor %}
+            </span>
+            <button id="dismissNudges" style="background: var(--state-color); color: white; border: none; padding: 4px 10px; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 0.75rem;">Got it</button>
+        </div>
     {% endif %}
 
     <div class="sensor-banner" id="sensorBanner">🔒 Enable Motion Verification (Anti-Cheat)</div>
@@ -393,7 +395,7 @@
         <div class="vol-pill active" data-vol="0.25">Glass (250ml)</div>
         <div class="vol-pill" data-vol="0.50">Bottle (500ml)</div>
         <div class="vol-pill" data-vol="0.75">Flask (750ml)</div>
-        <div class="vol-pill" id="customPill" data-vol="{{ profile.custom_volume }}">Custom ({{ profile.custom_volume|floatformat:2 }}L)</div>
+       <div class="vol-pill" id="customPill" data-vol="{{ profile.custom_volume }}">{{ profile.custom_volume_label }} ({{ profile.custom_volume|floatformat:2 }}L)</div>
     </div>
 
     <div class="social-card" style="margin-top: 10px;">
@@ -409,13 +411,22 @@
     <div class="social-card">
         <h3>FRIENDS LEADERBOARD standings</h3>
         {% for entry in leaderboard %}
-        <div class="leaderboard-row">
-            <span>{{ forloop.counter }}. <strong style="color: var(--text-color);">{{ entry.username }}</strong> (🔥{{ entry.streak }}d)</span>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <span>{{ entry.intake }}L / {{ entry.goal }}L</span>
-                {% if entry.username != "You" %}
-                    <button class="nudge-btn" data-username="{{ entry.username }}" style="background: none; border: none; cursor: pointer; font-size: 1.1rem; padding: 2px;" title="Nudge friend to drink!">👉</button>
-                {% endif %}
+        <div class="leaderboard-row" style="position: relative; flex-direction: column; gap: 4px;">
+            <div style="display: flex; justify-content: space-between; width: 100%;">
+                <span>{{ forloop.counter }}. <strong>{{ entry.username }}</strong> (🔥{{ entry.streak }}d)</span>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span>{{ entry.intake }}L / {{ entry.goal }}L</span>
+                        {% if entry.username != "You" %}
+                            <button onclick="toggleVibeMenu('{{ entry.username }}')" style="background: none; border: none; cursor: pointer; font-size: 1.1rem;" title="Nudge style custom options">👉</button>
+                        {% endif %}
+                    </div>
+            </div>
+
+            <!-- Popout context inline panel slider -->
+            <div id="vibe-menu-{{ entry.username }}" style="display: none; gap: 6px; background: rgba(0,0,0,0.2); padding: 6px; border-radius: 8px; margin-top: 4px; justify-content: flex-end;">
+                <button onclick="sendStylizedNudge('{{ entry.username }}', 'friendly')" style="background: #0284c7; color: white; border:none; padding: 3px 8px; font-size:0.75rem; border-radius:4px; cursor:pointer;">💧 Drop</button>
+                <button onclick="sendStylizedNudge('{{ entry.username }}', 'urgent')" style="background: #ea580c; color: white; border:none; padding: 3px 8px; font-size:0.75rem; border-radius:4px; cursor:pointer;">🚨 Alert</button>
+                <button onclick="sendStylizedNudge('{{ entry.username }}', 'challenge')" style="background: #16a34a; color: white; border:none; padding: 3px 8px; font-size:0.75rem; border-radius:4px; cursor:pointer;">🏆 Duel</button>
             </div>
         </div>
         {% endfor %}
@@ -914,6 +925,31 @@
                     alert("Streak Rescued! Keep up the great work today!");
                 }
             });
+        });
+    }
+
+    function toggleVibeMenu(username) {
+        const menu = document.getElementById(`vibe-menu-${username}`);
+        if(menu) {
+            menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
+        }
+    }
+
+    function sendStylizedNudge(username, chosenVibe) {
+        fetch(`/api/nudge/custom/${username}/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": "{{ csrf_token }}"
+            },
+            body: JSON.stringify({ vibe: chosenVibe })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if(data.status === 'success') {
+                alert(`Stylized ${chosenVibe} alert thrown at ${username}!`);
+                toggleVibeMenu(username);
+            }
         });
     }
 

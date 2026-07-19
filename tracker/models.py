@@ -3,11 +3,12 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from datetime import timedelta
 
+
 class UserProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     weight = models.FloatField(default=70.0)
 
-    # 🌟 NEW: Advanced body metrics
+    # Advanced body metrics
     height = models.FloatField(default=170.0)  # in cm
     age = models.IntegerField(default=25)
 
@@ -20,9 +21,12 @@ class UserProfile(models.Model):
 
     activity_level = models.FloatField(default=0.0)
     climate_factor = models.FloatField(default=0.0)
-    custom_volume = models.FloatField(default=0.40)  # in Liters
 
-    # 🌟 NEW: Optional Manual Goal Override
+    # 🌟 UPDATED: Advanced Container Customization Engine
+    custom_volume = models.FloatField(default=0.30)
+    custom_volume_label = models.CharField(max_length=30, default='Travel Flask')
+
+    # Optional Manual Goal Override
     custom_goal_override = models.FloatField(null=True, blank=True)  # in Liters
     profile_picture = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
     daily_goal = models.FloatField(default=2.50)
@@ -34,35 +38,25 @@ class UserProfile(models.Model):
     latitude = models.FloatField(null=True, blank=True)
     longitude = models.FloatField(null=True, blank=True)
 
-    # 🌟 UPDATED: Smart algorithm calculation method
+    # Smart algorithm calculation method
     def update_daily_goal(self):
-        # If the user has a manual override, prioritize it
         if self.custom_goal_override is not None:
             self.daily_goal = max(1.0, min(10.0, self.custom_goal_override))
         else:
-            # Baseline calculation: 35ml per kg of body weight
             calculated = (self.weight * 0.035) + self.activity_level + self.climate_factor
-
-            # Gender correction adjustments
             if self.gender == 'F':
-                calculated -= 0.3  # Female baseline adjustment factor
-
-            # Clamp the calculation between healthy safety guardrails
+                calculated -= 0.3
             self.daily_goal = max(1.5, min(6.0, calculated))
-
         self.save()
 
     @property
     def current_intake(self):
         today = timezone.localdate()
         logs = HydrationLog.objects.filter(user=self.user, timestamp__date=today)
-        # 🌟 UPDATED TO USE THE LOG'S NET HYDRATION:
         total = sum(log.net_hydration for log in logs)
-        return max(0.0, total)
+        return max(0.0, round(float(total), 2))
 
     def check_and_award_achievements(self):
-        """Evaluates achievements criteria and grants them if conditions are met"""
-        # Fetch achievements the user hasn't unlocked yet
         unlocked_ids = UserAchievement.objects.filter(user=self.user).values_list('achievement_id', flat=True)
         locked_achievements = Achievement.objects.exclude(id__in=unlocked_ids)
 
@@ -74,12 +68,10 @@ class UserProfile(models.Model):
                     should_award = True
 
             elif ach.condition_type == 'super_hydrated':
-                # Reached a milestone volume logged in a single day
                 if self.current_intake >= ach.condition_value:
                     should_award = True
 
             elif ach.condition_type == 'early_bird':
-                # Logged a drink early in the morning
                 today = timezone.localdate()
                 early_log_exists = HydrationLog.objects.filter(
                     user=self.user,
@@ -95,22 +87,20 @@ class UserProfile(models.Model):
 
     @property
     def avatar_url(self):
-        """Returns the uploaded picture if it exists, otherwise a smart, gender-based fallback avatar."""
         if self.profile_picture and hasattr(self.profile_picture, 'url'):
             try:
-                # Test if the physical file actually exists on the ephemeral disk
                 if self.profile_picture.storage.exists(self.profile_picture.name):
                     return self.profile_picture.url
             except Exception:
                 pass
 
-        # Fallback gender-specific avatars (no-broken-image-icons!)
         if self.gender == 'F':
             return "https://img.icons8.com/color/96/user-female-circle--v1.png"
         elif self.gender == 'O':
             return "https://img.icons8.com/color/96/user-gender-neutral-backside.png"
         else:
             return "https://img.icons8.com/color/96/user-male-circle--v1.png"
+
 
 class HydrationLog(models.Model):
     BEVERAGE_CHOICES = [
@@ -121,17 +111,13 @@ class HydrationLog(models.Model):
     ]
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='hydration_logs')
-    amount = models.FloatField()  # Base liquid volume in Liters
-    net_hydration = models.FloatField(default=0.0)  # Calculated cellular hydration (e.g., 0.60L for Electro, -0.25L for Alcohol)
-
-    # 🌟 NEW FIELDS FOR BEVERAGE TYPES:
+    amount = models.FloatField()
+    net_hydration = models.FloatField(default=0.0)
     beverage_type = models.CharField(max_length=15, choices=BEVERAGE_CHOICES, default='water')
-    modifier = models.FloatField(default=1.0)  # The efficiency scaling factor
-
+    modifier = models.FloatField(default=1.0)
     timestamp = models.DateTimeField(default=timezone.now)
 
     def save(self, *args, **kwargs):
-        # Dynamically calculate net hydration impact before saving to DB
         multipliers = {
             'water': 1.0,
             'sports': 1.2,
@@ -139,8 +125,10 @@ class HydrationLog(models.Model):
             'alcohol': -0.5
         }
         factor = multipliers.get(self.beverage_type, 1.0)
+        self.modifier = factor
         self.net_hydration = round(self.amount * factor, 2)
         super().save(*args, **kwargs)
+
 
 class HydrationGroup(models.Model):
     name = models.CharField(max_length=100, unique=True)
@@ -150,17 +138,19 @@ class HydrationGroup(models.Model):
     def __str__(self):
         return self.name
 
+
 class GroupChallenge(models.Model):
     group = models.ForeignKey(HydrationGroup, on_delete=models.CASCADE, related_name='challenges')
     title = models.CharField(max_length=150)
-    target_volume = models.FloatField() # Total target group Liters (e.g., 50.0L)
-    current_volume = models.FloatField(default=0.0) # Combined group Liters logged
+    target_volume = models.FloatField()
+    current_volume = models.FloatField(default=0.0)
     start_date = models.DateField(default=timezone.localdate)
     end_date = models.DateField()
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.title} ({self.group.name})"
+
 
 class Friendship(models.Model):
     from_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='friendships_initiated')
@@ -170,15 +160,17 @@ class Friendship(models.Model):
     class Meta:
         unique_together = ('from_user', 'to_user')
 
+
 class Achievement(models.Model):
     title = models.CharField(max_length=100)
     description = models.CharField(max_length=255)
-    icon = models.CharField(max_length=50)  # We will use clean emoji icons!
-    condition_type = models.CharField(max_length=50) # 'streak', 'early_bird', 'super_hydrated'
+    icon = models.CharField(max_length=50)
+    condition_type = models.CharField(max_length=50)
     condition_value = models.FloatField()
 
     def __str__(self):
         return self.title
+
 
 class UserAchievement(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='earned_achievements')
@@ -188,11 +180,22 @@ class UserAchievement(models.Model):
     class Meta:
         unique_together = ('user', 'achievement')
 
+
 class Nudge(models.Model):
+    # 🌟 UPDATED: Social Nudge Context Vibe Configurations
+    NUDGE_VIBES = [
+        ('friendly', 'Friendly drop (💧)'),
+        ('urgent', 'Urgent alert (🚨)'),
+        ('challenge', 'Playful challenge (🏆)'),
+    ]
+
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_nudges')
     receiver = models.ForeignKey(User, on_delete=models.CASCADE, related_name='received_nudges')
     timestamp = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
 
+    # Track targeted message strings matching intent wheel payload
+    vibe = models.CharField(max_length=15, choices=NUDGE_VIBES, default='friendly')
+
     def __str__(self):
-        return f"{self.sender.username} -> {self.receiver.username}"
+        return f"{self.sender.username} ({self.vibe}) -> {self.receiver.username}"
