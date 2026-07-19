@@ -444,8 +444,8 @@ def analytics_data_api(request, range_type):
         for log in logs:
             log_date = log['date']
             if log_date in raw_map:
-                raw_map[log_date] = round(log['total_raw'] or 0.0, 2)
-                net_map[log_date] = round(log['total_net'] or 0.0, 2)
+                raw_map[log_date] = max(0.0, round(log['total_raw'] or 0.0, 2))
+                net_map[log_date] = max(0.0, round(log['total_net'] or 0.0, 2))
 
         labels = [date.strftime('%a (%d)' if range_type == 'weekly' else '%d %b') for date in raw_map.keys()]
 

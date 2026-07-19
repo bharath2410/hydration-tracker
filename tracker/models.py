@@ -54,6 +54,7 @@ class UserProfile(models.Model):
         today = timezone.localdate()
         logs = HydrationLog.objects.filter(user=self.user, timestamp__date=today)
         total = sum(log.net_hydration for log in logs)
+        # 🌟 Safety check: If total is negative, return 0.00 so the circle looks clean!
         return max(0.0, round(float(total), 2))
 
     def check_and_award_achievements(self):
