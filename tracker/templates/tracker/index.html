@@ -936,7 +936,7 @@
     }
 
     function sendStylizedNudge(username, chosenVibe) {
-        fetch(`/api/nudge/custom/${username}/`, {
+        fetch(`/api/nudge/${username}/`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
@@ -949,8 +949,11 @@
             if(data.status === 'success') {
                 alert(`Stylized ${chosenVibe} alert thrown at ${username}!`);
                 toggleVibeMenu(username);
+            } else {
+                alert(`Nudge failed: ${data.message}`);
             }
-        });
+        })
+        .catch(err => console.error("Error sending nudge:", err));
     }
 
     // --- Service Worker Registration Loop ---
