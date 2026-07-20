@@ -355,7 +355,8 @@
         </div>
     {% endif %}
 
-    <div class="sensor-banner" id="sensorBanner">🔒 Enable Motion Verification (Anti-Cheat)</div>
+    <!-- 🌟 UPDATED: Added text referencing wrist-shake optimization configurations -->
+    <div class="sensor-banner" id="sensorBanner">🔒 Enable Wrist Shake & Gesture Quick-Logging</div>
 
     <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 5px;">
         <span style="font-size: 0.8rem; opacity: 0.8;">Rescue Tokens: <strong id="rescueCount">{{ profile.streak_rescues }}</strong></span>
@@ -364,7 +365,7 @@
         {% endif %}
     </div>
 
-    <div id="digitalGarden" style="font-size: 3rem; transition: transform 0.3s ease; margin-bottom: -15px; z-index: 10;" title="Digital Garden Plant">🌱</div>
+    <div id="digitalGarden" style="font-size: 3rem; transition: transform 0.3s ease; margin-bottom: -15px; z-index: 10; cursor: pointer;" title="Digital Garden Plant">🌱</div>
 
     <div class="circle-wrapper locked" id="tapZone">
         <div class="wave-container">
@@ -471,11 +472,16 @@
     } catch(e) {
         console.warn("Could not parse history logs, falling back to empty array:", e);
     }
-    
+
     let isVerifiedDrink = false;
     let maxTiltDetected = false;
     let activeBeverage = 'water';
     let hydrationChartInstance = null;
+
+    // --- 🌟 NEW: Shake Engine Local Variables ---
+    let lastX = null, lastY = null, lastZ = null;
+    let shakeThreshold = 15;
+    let lastShakeTime = 0;
 
     // --- DOM Elements Cache ---
     const progressCircle = document.getElementById('progress');
@@ -576,8 +582,76 @@
         }
     }
 
+    // --- 🌟 NEW: Device Motion Shake Handling Pipeline ---
+    function handleDeviceMotion(event) {
+        const acceleration = event.accelerationIncludingGravity;
+        if (!acceleration) return;
+
+        let currentTime = Date.now();
+        if ((currentTime - lastShakeTime) > 1000) {
+            let x = acceleration.x;
+            let y = acceleration.y;
+            let z = acceleration.z;
+
+            if (lastX !== null) {
+                let deltaX = Math.abs(lastX - x);
+                let deltaY = Math.abs(lastY - y);
+                let deltaZ = Math.abs(lastZ - z);
+
+                if ((deltaX > shakeThreshold && deltaY > shakeThreshold) || (deltaZ > shakeThreshold)) {
+                    isVerifiedDrink = true;
+                    lastShakeTime = currentTime;
+                    if (navigator.vibrate) navigator.vibrate([80, 50, 80]);
+
+                    statusHint.textContent = "Shake Detected! Logging...";
+                    executeWaterLogRequest(activeIncrement);
+                }
+            }
+
+            lastX = x;
+            lastY = y;
+            lastZ = z;
+        }
+    }
+
+    // --- 🌟 NEW: Core Shared Request Dispatch Pipeline ---
+    function executeWaterLogRequest(logAmount) {
+        fetch("{% url 'log_water_api' %}", {
+            method: "POST",
+            headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+            body: JSON.stringify({amount: logAmount, beverage_type: activeBeverage})
+        })
+        .then(res => {
+            if (!res.ok) {
+                return res.json().then(errData => {
+                    throw new Error(errData.message || "Internal Server Error");
+                });
+            }
+            return res.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                currentIntake = data.current_intake;
+                isVerifiedDrink = false;
+                if (currentIntake >= dailyGoal) confetti();
+                updateUI();
+
+                if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                    navigator.serviceWorker.controller.postMessage({
+                        type: 'RESET_REMINDER'
+                    });
+                }
+            }
+        })
+        .catch(err => {
+            alert(`Logging Failed! Error: ${err.message}`);
+            console.error("Hydration Log Error:", err);
+        });
+    }
+
     function startMotionTracking() {
         window.addEventListener('deviceorientation', handleMotion);
+        window.addEventListener('devicemotion', handleDeviceMotion);
         localStorage.setItem('motion_verified', 'true');
         if (sensorBanner) {
             sensorBanner.style.display = 'none';
@@ -696,7 +770,6 @@
         });
     }
 
-    // 🌟 FIXED: Wrapped fetch string interpolation inside standard JS backticks ( ` )
     function fetchAnalytics(rangeType) {
         fetch(`/api/analytics/${rangeType}/`)
             .then(res => res.json())
@@ -789,44 +862,32 @@
     if (tapZone) {
         tapZone.addEventListener('click', () => {
             if (!isVerifiedDrink) {
-                alert("Anti-Cheat Active: Please perform an actual drink gesture before logging!");
+                statusHint.textContent = "Give phone a quick shake to quick-log!";
                 return;
             }
+            executeWaterLogRequest(activeIncrement);
+        });
+    }
 
-            fetch("{% url 'log_water_api' %}", {
-                method: "POST",
-                headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
-                body: JSON.stringify({amount: activeIncrement, beverage_type: activeBeverage})
-            })
-            .then(res => {
-                if (!res.ok) {
-                    // If the server crashed (500), read the error traceback json
-                    return res.json().then(errData => {
-                        throw new Error(errData.message || "Internal Server Error");
-                    });
-                }
-                return res.json();
-            })
-            .then(data => {
-                if (data.status === 'success') {
-                    currentIntake = data.current_intake;
-                    isVerifiedDrink = false;
-                    if (currentIntake >= dailyGoal) confetti();
-                    updateUI();
+    // --- 🌟 NEW: Plant Double-Tap Shortcut Interaction ---
+    const gardenPlant = document.getElementById('digitalGarden');
+    if (gardenPlant) {
+        gardenPlant.addEventListener('dblclick', () => {
+            isVerifiedDrink = true;
+            if (navigator.vibrate) navigator.vibrate(40);
+            executeWaterLogRequest(0.25);
+        });
 
-                    // Notify background Service Worker thread to reset timer
-                    if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-                        navigator.serviceWorker.controller.postMessage({
-                            type: 'RESET_REMINDER'
-                        });
-                    }
-                }
-            })
-            .catch(err => {
-                // 🌟 Display the exact python traceback on your mobile screen!
-                alert(`Logging Failed! Error: ${err.message}`);
-                console.error("Hydration Log Error:", err);
-            });
+        let lastTap = 0;
+        gardenPlant.addEventListener('touchend', (e) => {
+            let currentTime = Date.now();
+            let tapLength = currentTime - lastTap;
+            if (tapLength < 300 && tapLength > 0) {
+                isVerifiedDrink = true;
+                executeWaterLogRequest(0.25);
+                e.preventDefault();
+            }
+            lastTap = currentTime;
         });
     }
 
@@ -847,26 +908,6 @@
             if (activePill) activePill.classList.remove('active');
             pill.classList.add('active');
             activeIncrement = parseFloat(pill.dataset.vol);
-        });
-    });
-
-    // Leaderboard Social Nudge Trigger
-    document.querySelectorAll('.nudge-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const username = btn.dataset.username;
-
-            fetch(`/api/nudge/${username}/`, {
-                method: "POST",
-                headers: { "X-CSRFToken": "{{ csrf_token }}" }
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    btn.textContent = "✅";
-                    btn.disabled = true;
-                    setTimeout(() => { btn.textContent = "👉"; btn.disabled = false; }, 2000);
-                }
-            });
         });
     });
 
@@ -935,6 +976,7 @@
         }
     }
 
+    // 🌟 FIXED: Changed fallback route parameter targeting directly to the proper endpoint path
     function sendStylizedNudge(username, chosenVibe) {
         fetch(`/api/nudge/${username}/`, {
             method: "POST",
